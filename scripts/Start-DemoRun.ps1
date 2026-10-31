@@ -1,0 +1,118 @@
+<#
+.SYNOPSIS
+Builds one demo run's Azure resources after the cost guard approves it, and writes out/run.json.
+.DESCRIPTION
+Order: Az context check, cost guard (2 hours, limit 2 EUR), resource group, Log Analytics workspace,
+storage account with a blob diagnostic setting, VNet with subnet snet-app, then the rogue VM
+(vm-traffic, Standard_B1s, Ubuntu 22.04, no public IP, SSH key generated into out/). The VM uses a
+New-AzVMConfig chain so the key and image are explicit. It is absent from config/demo-manifest.psd1.
+run.json holds raw ids (out/ is gitignored); console output masks the subscription id.
+.EXAMPLE
+./scripts/Start-DemoRun.ps1 -Location swedencentral
+#>
+[CmdletBinding()]
+param(
+    [string]$Location = 'swedencentral',
+    [string]$RunId,
+    [string]$OutDir
+)
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+. $PSScriptRoot/../lib/RunContext.ps1
+. $PSScriptRoot/../lib/Mask.ps1
+. $PSScriptRoot/../lib/CostGuard.ps1
+
+function New-DemoSshKey {
+    <#
+    .SYNOPSIS
+    Generates an ed25519 key pair in a folder and returns the public key text.
+    .EXAMPLE
+    New-DemoSshKey -Path ./out/demo_key
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '', Justification = 'Internal helper.')]
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$Path)
+    if (Test-Path $Path) { Remove-Item $Path, "$Path.pub" -Force }
+    & ssh-keygen -q -t ed25519 -N '' -C demo -f $Path | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'ssh-keygen failed' }
+    (Get-Content "$Path.pub" -Raw).Trim()
+}
+
+function Invoke-StartDemoRun {
+    <#
+    .SYNOPSIS
+    Runs the setup and returns 0 on success or 1 on any failure (nothing is created when the guard fails).
+    .EXAMPLE
+    $code = Invoke-StartDemoRun -RunId (New-DemoRunId) -Location swedencentral -OutDir ./out
+    #>
+    [CmdletBinding()]
+    [OutputType([int])]
+    param(
+        [string]$Location = 'swedencentral',
+        [string]$RunId,
+        [Parameter(Mandatory)][string]$OutDir
+    )
+    $sub = ''
+    try {
+        $ctx = Get-AzContext
+        if (-not $ctx) { Write-Host 'Run Connect-AzAccount first'; return 1 }
+        $sub = $ctx.Subscription.Id
+        if (-not $RunId) { $RunId = New-DemoRunId }
+        if ($RunId -notmatch '^\d{12}$') { throw "RunId must be 12 digits (yyyyMMddHHmm), got '$RunId'" }
+
+        $items = (Import-PowerShellDataFile $PSScriptRoot/../config/demo-resources.psd1).Items
+        $estimate = Get-DemoRunCostEstimate -Items $items -Region $Location -Hours 2
+        Assert-DemoRunBudget -Estimate $estimate
+        Write-Host ("Cost guard passed: {0} EUR for 2 hours" -f $estimate.TotalEur)
+
+        $tag = Get-DemoTag -RunId $RunId
+        $rg = Get-DemoResourceGroupName -RunId $RunId
+        $storageName = "stgnp$RunId"
+        $vnetName = 'vnet-gnp'
+        $vmName = 'vm-traffic'
+
+        $null = New-AzResourceGroup -Name $rg -Location $Location -Tag $tag
+        $workspace = New-AzOperationalInsightsWorkspace -ResourceGroupName $rg -Name "log-gnp-$RunId" -Location $Location -Sku PerGB2018 -Tag $tag
+        $storage = New-AzStorageAccount -ResourceGroupName $rg -Name $storageName -Location $Location -SkuName Standard_LRS -Kind StorageV2 -Tag $tag
+        $log = New-AzDiagnosticSettingLogSettingsObject -Enabled $true -CategoryGroup allLogs
+        $null = New-AzDiagnosticSetting -Name 'diag-to-log' -ResourceId "$($storage.Id)/blobServices/default" -WorkspaceId $workspace.ResourceId -Log $log
+
+        $subnet = New-AzVirtualNetworkSubnetConfig -Name 'snet-app' -AddressPrefix '10.10.1.0/24'
+        $vnet = New-AzVirtualNetwork -ResourceGroupName $rg -Name $vnetName -Location $Location -AddressPrefix '10.10.0.0/16' -Subnet $subnet -Tag $tag
+
+        $null = New-Item -ItemType Directory -Force -Path $OutDir
+        $pubKey = New-DemoSshKey -Path (Join-Path $OutDir 'demo_key')
+        $nic = New-AzNetworkInterface -ResourceGroupName $rg -Name 'vm-traffic-nic' -Location $Location -SubnetId $vnet.Subnets[0].Id -Tag $tag
+        $secret = [securestring]::new()
+        foreach ($c in ([guid]::NewGuid().ToString('N') + 'Aa1!').ToCharArray()) { $secret.AppendChar($c) }
+        $cred = [pscredential]::new('demoadmin', $secret)
+        $vm = New-AzVMConfig -VMName $vmName -VMSize 'Standard_B1s'
+        $vm = Set-AzVMOperatingSystem -VM $vm -Linux -ComputerName $vmName -Credential $cred -DisablePasswordAuthentication
+        $vm = Add-AzVMSshPublicKey -VM $vm -KeyData $pubKey -Path '/home/demoadmin/.ssh/authorized_keys'
+        $vm = Set-AzVMSourceImage -VM $vm -PublisherName 'Canonical' -Offer '0001-com-ubuntu-server-jammy' -Skus '22_04-lts-gen2' -Version 'latest'
+        $vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
+        $vm = Set-AzVMOSDisk -VM $vm -CreateOption FromImage -StorageAccountType StandardSSD_LRS
+        $null = New-AzVM -ResourceGroupName $rg -Location $Location -VM $vm -Tag $tag
+
+        $run = [ordered]@{
+            RunId = $RunId; ResourceGroup = $rg; StorageAccountName = $storageName
+            WorkspaceId = $workspace.ResourceId; VnetName = $vnetName; RogueVmName = $vmName; Location = $Location
+        }
+        $run | ConvertTo-Json | Set-Content -Path (Join-Path $OutDir 'run.json') -Encoding utf8
+        Write-Host (([pscustomobject]$run | Write-DemoOutput -SubscriptionId $sub))
+        return 0
+    }
+    catch {
+        $msg = ConvertTo-MaskedText -Text "Start-DemoRun failed: $($_.Exception.Message)" -SubscriptionId $sub
+        Write-Host $msg
+        return 1
+    }
+}
+
+if ($MyInvocation.InvocationName -ne '.') {
+    if (-not $OutDir) { $OutDir = Join-Path $PSScriptRoot '../out' }
+    $code = Invoke-StartDemoRun -Location $Location -RunId $RunId -OutDir $OutDir
+    if ($code -ne 0) { $Host.SetShouldExit(1); exit 1 }
+}
