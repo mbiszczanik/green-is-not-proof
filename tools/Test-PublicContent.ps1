@@ -21,7 +21,7 @@ $ErrorActionPreference = 'Stop'
 
 if (-not $Path -or $Path.Count -eq 0) {
     Write-Output 'public-content: no files to check'
-    $Host.SetShouldExit(1); exit 1
+    exit 1
 }
 
 $allowFile = $AllowListPath
@@ -87,6 +87,6 @@ foreach ($p in $Path) {
 
 if ($hits -gt 0) {
     Write-Output "public-content: $hits hit(s)"
-    $Host.SetShouldExit(1); exit 1
+    exit 1
 }
 Write-Output "public-content: clean ($checked files)"

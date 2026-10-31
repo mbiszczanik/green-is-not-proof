@@ -58,5 +58,5 @@ function Invoke-OwnershipAudit {
 if ($MyInvocation.InvocationName -ne '.') {
     if (-not $OutDir) { $OutDir = Join-Path $PSScriptRoot '../../out' }
     $code = Invoke-OwnershipAudit -RunId $RunId -OutDir $OutDir
-    if ($code -ne 0) { $Host.SetShouldExit(1); exit 1 }
+    if ($code -ne 0) { exit 1 }
 }
