@@ -35,7 +35,7 @@ BeforeAll {
         Mock New-AzDiagnosticSettingLogSettingsObject { $script:Calls.Add(@{ Cmd = 'New-AzDiagnosticSettingLogSettingsObject' }); 'logobj' }
         Mock New-AzDiagnosticSetting { $script:Calls.Add(@{ Cmd = 'New-AzDiagnosticSetting'; Name = $Name }) }
         Mock New-AzVirtualNetworkSubnetConfig { $script:Calls.Add(@{ Cmd = 'New-AzVirtualNetworkSubnetConfig' }); 'subnetcfg' }
-        Mock New-AzVirtualNetwork { $script:Calls.Add(@{ Cmd = 'New-AzVirtualNetwork'; Tag = $Tag }); [pscustomobject]@{ Subnets = @([pscustomobject]@{ Id = 'subnet-id' }) } }
+        Mock New-AzVirtualNetwork { $script:Calls.Add(@{ Cmd = 'New-AzVirtualNetwork'; Tag = $Tag }); [pscustomobject]@{ Subnets = @([pscustomobject]@{ Name = 'snet-app'; Id = 'snet-app-id' }) } }
         Mock New-AzNetworkInterface { $script:Calls.Add(@{ Cmd = 'New-AzNetworkInterface'; Tag = $Tag }); [pscustomobject]@{ Id = 'nic-id' } }
         Mock New-AzVMConfig { $script:Calls.Add(@{ Cmd = 'New-AzVMConfig' }); [pscustomobject]@{ Name = 'vmcfg' } }
         Mock Set-AzVMOperatingSystem { $script:Calls.Add(@{ Cmd = 'Set-AzVMOperatingSystem' }); $VM }
@@ -50,12 +50,31 @@ BeforeAll {
 Describe 'Invoke-StartDemoRun' {
     BeforeEach { Initialize-Mock }
 
-    It 'cost guard runs before any New-Az call' {
+    It 'cost guard runs first and the setup calls follow the documented order' {
         $null = Invoke-StartDemoRun -RunId '202611181805' -Location swedencentral -OutDir $script:out 6>&1
-        $names = @($script:Calls.Cmd)
-        $names[0] | Should -Be 'cost'
-        $names | Should -Contain 'New-AzVM'
-        $names.IndexOf('New-AzResourceGroup') | Should -BeGreaterThan 0
+        $order = 'cost', 'New-AzResourceGroup', 'New-AzOperationalInsightsWorkspace', 'New-AzStorageAccount', 'New-AzDiagnosticSetting', 'New-AzVirtualNetwork', 'New-AzNetworkInterface', 'New-AzVM'
+        $actual = @($script:Calls.Cmd | Where-Object { $_ -in $order })
+        $actual | Should -Be $order
+    }
+
+    It 'passes the documented values to the Az cmdlets' {
+        $null = Invoke-StartDemoRun -RunId '202611181805' -Location swedencentral -OutDir $script:out 6>&1
+        Should -Invoke New-AzVMConfig -Times 1 -Exactly -ParameterFilter { $VMSize -eq 'Standard_B1s' -and $VMName -eq 'vm-traffic' }
+        Should -Invoke Set-AzVMSourceImage -Times 1 -Exactly -ParameterFilter { $Offer -eq '0001-com-ubuntu-server-jammy' -and $Skus -eq '22_04-lts-gen2' -and $PublisherName -eq 'Canonical' }
+        Should -Invoke Set-AzVMOperatingSystem -Times 1 -Exactly -ParameterFilter { $DisablePasswordAuthentication -and $Linux }
+        Should -Invoke New-AzVirtualNetworkSubnetConfig -Times 1 -Exactly -ParameterFilter { $Name -eq 'snet-app' }
+        Should -Invoke New-AzNetworkInterface -Times 1 -Exactly -ParameterFilter { $SubnetId -eq 'snet-app-id' -and $Name -eq 'vm-traffic-nic' }
+        Should -Invoke New-AzDiagnosticSetting -Times 1 -Exactly -ParameterFilter { $Name -eq 'diag-to-log' -and $ResourceId -like '*/blobServices/default' -and $WorkspaceId -eq "/subscriptions/$($script:Sub)/resourceGroups/rg/providers/Microsoft.OperationalInsights/workspaces/log" }
+    }
+
+    It 'failure after resource group leaves a run record' {
+        Mock New-AzVM { throw 'vm quota exceeded' }
+        $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'Partial run: rg-gnp-202611181805 exists'
+        $json = Get-Content (Join-Path $script:out 'run.json') -Raw | ConvertFrom-Json
+        $json.RunId | Should -Be '202611181805'
+        $json.ResourceGroup | Should -Be 'rg-gnp-202611181805'
     }
 
     It 'over-budget estimate creates nothing' {

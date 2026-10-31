@@ -34,7 +34,7 @@ function New-DemoSshKey {
     [CmdletBinding()]
     [OutputType([string])]
     param([Parameter(Mandatory)][string]$Path)
-    if (Test-Path $Path) { Remove-Item $Path, "$Path.pub" -Force }
+    foreach ($f in $Path, "$Path.pub") { if (Test-Path $f) { Remove-Item $f -Force } }
     & ssh-keygen -q -t ed25519 -N '' -C demo -f $Path | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'ssh-keygen failed' }
     (Get-Content "$Path.pub" -Raw).Trim()
@@ -55,6 +55,7 @@ function Invoke-StartDemoRun {
         [Parameter(Mandatory)][string]$OutDir
     )
     $sub = ''
+    $run = $null
     try {
         $ctx = Get-AzContext
         if (-not $ctx) { Write-Host 'Run Connect-AzAccount first'; return 1 }
@@ -73,16 +74,26 @@ function Invoke-StartDemoRun {
         $vnetName = 'vnet-gnp'
         $vmName = 'vm-traffic'
 
+        $null = New-Item -ItemType Directory -Force -Path $OutDir
+        $runFile = Join-Path $OutDir 'run.json'
         $null = New-AzResourceGroup -Name $rg -Location $Location -Tag $tag
+        # Written right after the group exists so a later failure still leaves a record for teardown.
+        $run = [ordered]@{ RunId = $RunId; ResourceGroup = $rg; Location = $Location }
+        $run | ConvertTo-Json | Set-Content -Path $runFile -Encoding utf8
         $workspace = New-AzOperationalInsightsWorkspace -ResourceGroupName $rg -Name "log-gnp-$RunId" -Location $Location -Sku PerGB2018 -Tag $tag
+        $run.WorkspaceId = $workspace.ResourceId
+        $run | ConvertTo-Json | Set-Content -Path $runFile -Encoding utf8
         $storage = New-AzStorageAccount -ResourceGroupName $rg -Name $storageName -Location $Location -SkuName Standard_LRS -Kind StorageV2 -Tag $tag
+        $run.StorageAccountName = $storageName
+        $run | ConvertTo-Json | Set-Content -Path $runFile -Encoding utf8
         $log = New-AzDiagnosticSettingLogSettingsObject -Enabled $true -CategoryGroup allLogs
         $null = New-AzDiagnosticSetting -Name 'diag-to-log' -ResourceId "$($storage.Id)/blobServices/default" -WorkspaceId $workspace.ResourceId -Log $log
 
         $subnet = New-AzVirtualNetworkSubnetConfig -Name 'snet-app' -AddressPrefix '10.10.1.0/24'
         $vnet = New-AzVirtualNetwork -ResourceGroupName $rg -Name $vnetName -Location $Location -AddressPrefix '10.10.0.0/16' -Subnet $subnet -Tag $tag
+        $run.VnetName = $vnetName
+        $run | ConvertTo-Json | Set-Content -Path $runFile -Encoding utf8
 
-        $null = New-Item -ItemType Directory -Force -Path $OutDir
         $pubKey = New-DemoSshKey -Path (Join-Path $OutDir 'demo_key')
         $nic = New-AzNetworkInterface -ResourceGroupName $rg -Name 'vm-traffic-nic' -Location $Location -SubnetId $vnet.Subnets[0].Id -Tag $tag
         $secret = [securestring]::new()
@@ -96,17 +107,15 @@ function Invoke-StartDemoRun {
         $vm = Set-AzVMOSDisk -VM $vm -CreateOption FromImage -StorageAccountType StandardSSD_LRS
         $null = New-AzVM -ResourceGroupName $rg -Location $Location -VM $vm -Tag $tag
 
-        $run = [ordered]@{
-            RunId = $RunId; ResourceGroup = $rg; StorageAccountName = $storageName
-            WorkspaceId = $workspace.ResourceId; VnetName = $vnetName; RogueVmName = $vmName; Location = $Location
-        }
-        $run | ConvertTo-Json | Set-Content -Path (Join-Path $OutDir 'run.json') -Encoding utf8
+        $run.RogueVmName = $vmName
+        $run | ConvertTo-Json | Set-Content -Path $runFile -Encoding utf8
         Write-Host (([pscustomobject]$run | Write-DemoOutput -SubscriptionId $sub))
         return 0
     }
     catch {
         $msg = ConvertTo-MaskedText -Text "Start-DemoRun failed: $($_.Exception.Message)" -SubscriptionId $sub
         Write-Host $msg
+        if ($run) { Write-Host (ConvertTo-MaskedText -Text "Partial run: $($run.ResourceGroup) exists. Run scripts/Stop-DemoRun.ps1 -RunId $RunId to tear it down." -SubscriptionId $sub) }
         return 1
     }
 }
