@@ -19,8 +19,10 @@ BeforeAll {
         'New-AzVM'                                 = 'param($ResourceGroupName, $Location, $VM, $Tag)'
     }
     foreach ($n in $stubs.Keys) {
-        if (-not (Get-Command $n -ErrorAction SilentlyContinue)) { Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create($stubs[$n])) }
+        # Always shadow: runners with Az installed would otherwise mock real cmdlets whose signatures differ by version.
+        Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create($stubs[$n]))
     }
+    $script:StubNames = $stubs.Keys
     . $PSScriptRoot/../scripts/Start-DemoRun.ps1
 
     function script:Initialize-Mock {
@@ -47,11 +49,14 @@ BeforeAll {
     }
 }
 
+AfterAll { foreach ($n in $script:StubNames) { Remove-Item "function:global:$n" -ErrorAction SilentlyContinue } }
+
 Describe 'Invoke-StartDemoRun' {
     BeforeEach { Initialize-Mock }
 
     It 'cost guard runs first and the setup calls follow the documented order' {
-        $null = Invoke-StartDemoRun -RunId '202611181805' -Location swedencentral -OutDir $script:out 6>&1
+        $res = Invoke-StartDemoRun -RunId '202611181805' -Location swedencentral -OutDir $script:out 6>&1
+        Write-Host ($res | Where-Object { $_ -isnot [int] } | Out-String)
         $order = 'cost', 'New-AzResourceGroup', 'New-AzOperationalInsightsWorkspace', 'New-AzStorageAccount', 'New-AzDiagnosticSetting', 'New-AzVirtualNetwork', 'New-AzNetworkInterface', 'New-AzVM'
         $actual = @($script:Calls.Cmd | Where-Object { $_ -in $order })
         $actual | Should -Be $order
@@ -105,7 +110,7 @@ Describe 'Invoke-StartDemoRun' {
 
     It 'run.json holds raw ids while console output is masked' {
         $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
-        ($res | Where-Object { $_ -is [int] }) | Should -Be 0
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 0 -Because ($res | Where-Object { $_ -isnot [int] } | Out-String)
         $json = Get-Content (Join-Path $script:out 'run.json') -Raw | ConvertFrom-Json
         $json.WorkspaceId | Should -Match $script:Sub
         $json.RunId | Should -Be '202611181805'
