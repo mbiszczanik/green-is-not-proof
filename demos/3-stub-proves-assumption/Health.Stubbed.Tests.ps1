@@ -5,7 +5,7 @@ Describe 'Strict workspace health, hand-written stub' {
         # The stub is what we BELIEVE Get-AzOperationalInsightsWorkspace returns.
         $stub = [pscustomobject]@{
             ProvisioningState          = 'Succeeded'
-            PrivateLinkScopedResources = @('/subscriptions/<subscription-id>/resourceGroups/rg/providers/Microsoft.Insights/privateLinkScopes/ampls')
+            (Get-HealthPropertyName) = @('/subscriptions/<subscription-id>/resourceGroups/rg/providers/Microsoft.Insights/privateLinkScopes/ampls')
         }
         Test-WorkspaceHealth -Workspace $stub -Mode Strict | Should -BeTrue
     }

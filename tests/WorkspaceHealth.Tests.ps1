@@ -13,7 +13,7 @@ BeforeAll {
     . $PSScriptRoot/../demos/3-stub-proves-assumption/Show-LiveProperty.ps1
 
     function script:New-TestWorkspace([string]$State = 'Succeeded', $Prop = $null) {
-        [pscustomobject]@{ ProvisioningState = $State; PrivateLinkScopedResources = $Prop }
+        [pscustomobject]@{ ProvisioningState = $State; (Get-HealthPropertyName) = $Prop }
     }
     function script:Initialize-Mock([object]$Workspace) {
         $script:out = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
@@ -45,6 +45,12 @@ Describe 'Test-WorkspaceHealth' {
     It 'Strict is false when the state is not Succeeded' {
         Test-WorkspaceHealth -Workspace (New-TestWorkspace -State 'Updating' -Prop @('x')) -Mode Strict | Should -BeFalse
     }
+    It 'swapping the property name changes what Strict demands' {
+        $ws = [pscustomobject]@{ ProvisioningState = 'Succeeded'; OtherProperty = @('x') }
+        Test-WorkspaceHealth -Workspace $ws -Mode Strict | Should -BeFalse
+        Mock Get-HealthPropertyName { 'OtherProperty' }
+        Test-WorkspaceHealth -Workspace $ws -Mode Strict | Should -BeTrue
+    }
     It 'Lenient is true with the property null' {
         Test-WorkspaceHealth -Workspace (New-TestWorkspace) -Mode Lenient | Should -BeTrue
     }
@@ -59,7 +65,7 @@ Describe 'Invoke-ShowLiveProperty' {
         $res = Invoke-ShowLiveProperty -OutDir $script:out 6>&1
         ($res | Where-Object { $_ -is [int] }) | Should -Be 0
         $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
-        $text | Should -Match 'PrivateLinkScopedResources: \(empty\)'
+        $text | Should -Match "$(Get-HealthPropertyName): \(empty\)"
         $text | Should -Match 'Strict health: False'
         $text | Should -Match 'Lenient health: True'
         Should -Invoke Get-AzOperationalInsightsWorkspace -Times 1 -Exactly -ParameterFilter { $ResourceGroupName -eq 'rg-gnp-202611181805' -and $Name -eq 'log-gnp-202611181805' }

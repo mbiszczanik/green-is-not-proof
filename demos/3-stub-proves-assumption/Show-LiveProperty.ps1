@@ -47,11 +47,11 @@ function Invoke-ShowLiveProperty {
         $rg = Get-DemoResourceGroupName -RunId $RunId
 
         $ws = Get-AzOperationalInsightsWorkspace -ResourceGroupName $rg -Name "log-gnp-$RunId"
-        $p = $ws.PSObject.Properties['PrivateLinkScopedResources']
-        $value = if ($p) { @($p.Value | Where-Object { "$_".Trim() }) -join ', ' } else { '' }
-        if (-not $value) { $value = '(empty)' }
+        $name = Get-HealthPropertyName
+        $value = '(empty)'
+        if (-not (Test-HealthPropertyEmpty -Workspace $ws)) { $value = @($ws.PSObject.Properties[$name].Value | Where-Object { "$_".Trim() }) -join ', ' }
         $lines = @(
-            "PrivateLinkScopedResources: $value"
+            "${name}: $value"
             "Strict health: $(Test-WorkspaceHealth -Workspace $ws -Mode Strict)"
             "Lenient health: $(Test-WorkspaceHealth -Workspace $ws -Mode Lenient)"
         )
