@@ -41,13 +41,15 @@ function Test-CallGuarded {
         # b) an earlier bare `if ($DryRun) { ...; return|exit|break }` in this or an enclosing block
         if ($node -is [System.Management.Automation.Language.StatementBlockAst] -or $node -is [System.Management.Automation.Language.NamedBlockAst]) {
             foreach ($stmt in $node.Statements) {
-                if ($stmt.Extent.StartOffset -ge $offset -or $stmt -isnot [System.Management.Automation.Language.IfStatementAst]) { continue }
+                # a statement that contains the call (the dry branch itself) is never its own early exit
+                if ($stmt.Extent.StartOffset -ge $offset -or $stmt.Extent.EndOffset -gt $offset -or $stmt -isnot [System.Management.Automation.Language.IfStatementAst]) { continue }
                 if ($stmt.ElseClause -or $stmt.Clauses.Count -ne 1) { continue }
                 if ((Test-DryRunCondition -Condition $stmt.Clauses[0].Item1) -ne 'Dry') { continue }
                 $exits = $stmt.Clauses[0].Item2.Statements | Where-Object {
                     $_ -is [System.Management.Automation.Language.ReturnStatementAst] -or
                     $_ -is [System.Management.Automation.Language.ExitStatementAst] -or
-                    $_ -is [System.Management.Automation.Language.BreakStatementAst]
+                    $_ -is [System.Management.Automation.Language.BreakStatementAst] -or
+                    $_ -is [System.Management.Automation.Language.ContinueStatementAst]
                 }
                 if ($exits) { return $true }
             }

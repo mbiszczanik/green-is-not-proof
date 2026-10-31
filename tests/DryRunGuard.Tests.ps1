@@ -88,3 +88,20 @@ Describe 'Find-UnguardedMutation fails red when unsure' {
         @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
     }
 }
+
+Describe 'Find-UnguardedMutation dry branch is not its own early exit' {
+    It 'call inside the dry branch before return is reported' {
+        $p = New-Fixture 'selfexit.ps1' 'if ($DryRun) { New-AzVM -Name x; return }'
+        @(Find-UnguardedMutation -Path $p).Command | Should -Be 'New-AzVM'
+    }
+
+    It 'call inside the dry branch after an exit is still reported' {
+        $p = New-Fixture 'selfexit2.ps1' 'if ($DryRun) { exit; New-AzVM }'
+        @(Find-UnguardedMutation -Path $p).Command | Should -Be 'New-AzVM'
+    }
+
+    It 'accepts continue as an early exit' {
+        $p = New-Fixture 'continue.ps1' "foreach (`$i in 1..2) {`n if (`$DryRun) { continue }`n New-AzX`n}"
+        @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
+    }
+}
