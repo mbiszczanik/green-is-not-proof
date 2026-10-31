@@ -1,4 +1,4 @@
 #!/bin/sh
 # Enable with: git config core.hooksPath .githooks
-pwsh -NoProfile -File tools/Test-PublicContent.ps1 -Path $(git ls-files)
+git ls-files -z | xargs -0 pwsh -NoProfile -File tools/Test-PublicContent.ps1
 exit $?

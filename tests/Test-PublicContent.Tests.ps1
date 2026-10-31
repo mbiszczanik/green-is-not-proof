@@ -7,10 +7,11 @@ BeforeAll {
     $script:ReaderGuid = 'acdd72a7-3385-48ef-' + 'bd42-f606fba81ae7'
 
     function script:Invoke-Tool {
-        param([string[]]$Path, [string]$DenyListPath)
+        param([string[]]$Path, [string]$DenyListPath, [string]$AllowListPath)
         $toolArgs = @('-NoProfile', '-File', $script:Tool)
         if ($Path) { $toolArgs += @('-Path') + $Path }
         if ($DenyListPath) { $toolArgs += @('-DenyListPath', $DenyListPath) }
+        if ($AllowListPath) { $toolArgs += @('-AllowListPath', $AllowListPath) }
         $out = & $script:Pwsh @toolArgs 2>&1 | Out-String
         [pscustomobject]@{ Code = $LASTEXITCODE; Output = $out }
     }
@@ -62,5 +63,32 @@ Describe 'Test-PublicContent' {
         [IO.File]::WriteAllBytes($p, [byte[]](0, 1, 2) + [Text.Encoding]::ASCII.GetBytes($script:Mail))
         $r = Invoke-Tool -Path $p -DenyListPath $script:NoDeny
         $r.Code | Should -Be 0
+    }
+    It 'flags an e-mail in a UTF-16 LE file' {
+        $p = Join-Path $TestDrive 'u16le.txt'
+        [IO.File]::WriteAllText($p, "contact $script:Mail", [Text.UnicodeEncoding]::new($false, $true))
+        $r = Invoke-Tool -Path $p -DenyListPath $script:NoDeny
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'u16le\.txt:1: e-mail'
+    }
+    It 'flags a GUID in a UTF-16 BE file' {
+        $p = Join-Path $TestDrive 'u16be.txt'
+        [IO.File]::WriteAllText($p, "id $script:Guid", [Text.UnicodeEncoding]::new($true, $true))
+        $r = Invoke-Tool -Path $p -DenyListPath $script:NoDeny
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'u16be\.txt:1: guid'
+    }
+    It 'still skips a binary file without BOM' {
+        $p = Join-Path $TestDrive 'nobom.dat'
+        [IO.File]::WriteAllBytes($p, [byte[]](1, 0, 2, 0) + [Text.Encoding]::ASCII.GetBytes($script:Mail))
+        $r = Invoke-Tool -Path $p -DenyListPath $script:NoDeny
+        $r.Code | Should -Be 0
+    }
+    It 'flags an e-mail in the allow-list file' {
+        $p = New-Fixture 'allow.txt' "# note $script:Mail`n$script:ReaderGuid"
+        $r = Invoke-Tool -Path $p -DenyListPath $script:NoDeny -AllowListPath $p
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'allow\.txt:1: e-mail'
+        $r.Output | Should -Not -Match 'allow\.txt:2'
     }
 }

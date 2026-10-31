@@ -11,13 +11,15 @@ missing, only e-mails and GUIDs are checked.
 #>
 [CmdletBinding()]
 param(
+    [Parameter(Position = 0, ValueFromRemainingArguments)]
     [string[]]$Path = @(),
-    [string]$DenyListPath = (Join-Path $HOME '.config/green-is-not-proof/deny.txt')
+    [string]$DenyListPath = (Join-Path $HOME '.config/green-is-not-proof/deny.txt'),
+    [string]$AllowListPath = (Join-Path $PSScriptRoot 'public-content-allow.txt')
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$allowFile = Join-Path $PSScriptRoot 'public-content-allow.txt'
+$allowFile = $AllowListPath
 $allowed = @{}
 if (Test-Path -LiteralPath $allowFile) {
     foreach ($l in Get-Content -LiteralPath $allowFile) {
@@ -37,7 +39,6 @@ else {
 
 $emailRx = [regex]'[\w.+-]+@[\w-]+\.[\w.-]+'
 $guidRx = [regex]'[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}'
-$allowFull = (Resolve-Path -LiteralPath $allowFile -ErrorAction SilentlyContinue)
 $hits = 0
 $checked = 0
 
@@ -48,16 +49,22 @@ foreach ($p in $Path) {
         continue
     }
     $full = (Resolve-Path -LiteralPath $p).Path
-    if ($allowFull -and $full -eq $allowFull.Path) { continue }
 
-    $buf = New-Object byte[] 8192
-    $fs = [IO.File]::OpenRead($full)
-    try { $n = $fs.Read($buf, 0, $buf.Length) } finally { $fs.Dispose() }
-    if ($n -gt 0 -and [Array]::IndexOf($buf, [byte]0, 0, $n) -ge 0) { continue }
+    $bytes = [IO.File]::ReadAllBytes($full)
+    $n = $bytes.Length
+    $enc = $null; $skip = 0
+    if ($n -ge 4 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE -and $bytes[2] -eq 0 -and $bytes[3] -eq 0) { $enc = [Text.UTF32Encoding]::new($false, $true); $skip = 4 }
+    elseif ($n -ge 4 -and $bytes[0] -eq 0 -and $bytes[1] -eq 0 -and $bytes[2] -eq 0xFE -and $bytes[3] -eq 0xFF) { $enc = [Text.UTF32Encoding]::new($true, $true); $skip = 4 }
+    elseif ($n -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) { $enc = [Text.UTF8Encoding]::new($true); $skip = 3 }
+    elseif ($n -ge 2 -and $bytes[0] -eq 0xFF -and $bytes[1] -eq 0xFE) { $enc = [Text.UnicodeEncoding]::new($false, $true); $skip = 2 }
+    elseif ($n -ge 2 -and $bytes[0] -eq 0xFE -and $bytes[1] -eq 0xFF) { $enc = [Text.UnicodeEncoding]::new($true, $true); $skip = 2 }
+    elseif ($n -gt 0 -and [Array]::IndexOf($bytes, [byte]0, 0, [Math]::Min($n, 8192)) -ge 0) { continue }
+    else { $enc = [Text.UTF8Encoding]::new($false) }
 
     $checked++
     $lineNo = 0
-    foreach ($line in [IO.File]::ReadLines($full)) {
+    $text = $enc.GetString($bytes, $skip, $n - $skip)
+    foreach ($line in $text -split '\r?\n') {
         $lineNo++
         if ($emailRx.IsMatch($line)) { Write-Output "${p}:${lineNo}: e-mail"; $hits++ }
         foreach ($m in $guidRx.Matches($line)) {
