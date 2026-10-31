@@ -49,10 +49,22 @@ Describe 'Test-PublicContent' {
         $r.Code | Should -Be 1
         $r.Output | Should -Match 'deny\.txt:1: deny-list'
     }
-    It 'reports clean on empty repo' {
+    It 'fails when no paths are given' {
         $r = Invoke-Tool -Path @() -DenyListPath $script:NoDeny
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'no files to check'
+    }
+    It 'fails on an empty path list' {
+        $cmd = "& '$script:Tool' -Path @() -DenyListPath '$script:NoDeny'"
+        $out = & $script:Pwsh -NoProfile -Command $cmd 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 1
+        $out | Should -Match 'no files to check'
+    }
+    It 'reports a clean file' {
+        $f = New-Fixture 'clean.txt' 'nothing to see'
+        $r = Invoke-Tool -Path $f -DenyListPath $script:NoDeny
         $r.Code | Should -Be 0
-        $r.Output | Should -Match 'clean'
+        $r.Output | Should -Match 'clean \(1 files\)'
     }
     It 'fails when a path does not exist' {
         $r = Invoke-Tool -Path (Join-Path $TestDrive 'missing.txt') -DenyListPath $script:NoDeny

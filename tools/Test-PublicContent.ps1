@@ -19,6 +19,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+if (-not $Path -or $Path.Count -eq 0) {
+    Write-Output 'public-content: no files to check'
+    $Host.SetShouldExit(1); exit 1
+}
+
 $allowFile = $AllowListPath
 $allowed = @{}
 if (Test-Path -LiteralPath $allowFile) {
