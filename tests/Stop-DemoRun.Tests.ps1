@@ -85,6 +85,20 @@ Describe 'Invoke-StopDemoRun' {
         Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
     }
 
+    It 'missing group with the Az not-found message is treated as missing' {
+        Mock Get-AzResourceGroup { throw 'Provided resource group does not exist.' }
+        $code = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
+        $code | Should -Be 0
+        Should -Invoke Remove-AzResourceGroup -Times 0
+    }
+
+    It 'post-delete check accepts the Az not-found message' {
+        Mock Get-AzResourceGroup { if ($script:RgGone) { throw 'Provided resource group does not exist.' }; [pscustomobject]@{ ResourceGroupName = 'rg' } }
+        $code = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
+        $code | Should -Be 0
+        Should -Invoke Remove-AzResourceGroup -Times 1
+    }
+
     It 'group lookup failure stops teardown' {
         @{ RunId = '202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         Mock Get-AzResourceGroup { throw "AuthorizationFailed 403 on /subscriptions/$($script:Sub)" }

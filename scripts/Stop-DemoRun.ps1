@@ -33,7 +33,8 @@ function Test-DemoResourceGroup {
     param([Parameter(Mandatory)][string]$Name)
     try { return [bool](Get-AzResourceGroup -Name $Name -ErrorAction Stop) }
     catch {
-        if ($_.Exception.Message -match "could not be found|ResourceGroupNotFound|NotFound") { return $false }
+        # Exact Az text for a missing group is confirmed by the live run.
+        if ($_.Exception.Message -match "could not be found|does not exist|ResourceGroupNotFound|NotFound") { return $false }
         throw
     }
 }
