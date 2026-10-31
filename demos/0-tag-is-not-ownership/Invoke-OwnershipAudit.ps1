@@ -51,7 +51,7 @@ function Invoke-OwnershipAudit {
         return 0
     }
     catch {
-        Write-Host (ConvertTo-MaskedText -Text "Ownership audit failed: $($_.Exception.Message)" -SubscriptionId $sub)
+        Write-Host (ConvertTo-SafeText -Text "Ownership audit failed: $($_.Exception.Message)" -SubscriptionId $sub)
         return 1
     }
 }

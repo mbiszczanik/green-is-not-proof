@@ -56,11 +56,11 @@ function Invoke-ShowLiveProperty {
             "Strict health: $(Test-WorkspaceHealth -Workspace $ws -Mode Strict)"
             "Lenient health: $(Test-WorkspaceHealth -Workspace $ws -Mode Lenient)"
         )
-        Write-Host (ConvertTo-MaskedText -Text ($lines -join [Environment]::NewLine) -SubscriptionId $sub)
+        Write-Host (ConvertTo-SafeText -Text ($lines -join [Environment]::NewLine) -SubscriptionId $sub)
         return 0
     }
     catch {
-        Write-Host (ConvertTo-MaskedText -Text "Show-LiveProperty failed: $($_.Exception.Message)" -SubscriptionId $sub)
+        Write-Host (ConvertTo-SafeText -Text "Show-LiveProperty failed: $($_.Exception.Message)" -SubscriptionId $sub)
         return 1
     }
 }

@@ -170,6 +170,18 @@ Describe 'Invoke-StartDemoRun' {
         Should -Invoke New-AzResourceGroup -Times 0 -Exactly
     }
 
+    It 'prints neither an e-mail address nor an object id from an error' {
+        $mail = 'a.b' + '@' + 'example.org'
+        $oid = [guid]::NewGuid().ToString()
+        Mock New-AzVM { throw "AuthorizationFailed: $mail object id $oid" }
+        $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
+        $text | Should -Not -Match 'example\.org'
+        $text | Should -Not -Match $oid
+        $text | Should -Match '<email>'
+        $text | Should -Match '<guid>'
+    }
+
     It 'rejects a run id that is not 12 digits' {
         $res = Invoke-StartDemoRun -RunId 'bad' -OutDir $script:out 6>&1
         ($res | Where-Object { $_ -is [int] }) | Should -Be 1

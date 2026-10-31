@@ -46,7 +46,7 @@ function Invoke-TagAudit {
         return 0
     }
     catch {
-        Write-Host (ConvertTo-MaskedText -Text "Tag audit failed: $($_.Exception.Message)" -SubscriptionId $sub)
+        Write-Host (ConvertTo-SafeText -Text "Tag audit failed: $($_.Exception.Message)" -SubscriptionId $sub)
         return 1
     }
 }

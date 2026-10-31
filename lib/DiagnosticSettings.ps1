@@ -19,7 +19,7 @@ function Remove-DemoDiagnosticSetting {
     }
     catch {
         if ($_.Exception.Message -match 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest') {
-            Write-Host (ConvertTo-MaskedText -Text "No diagnostic settings supported on $ResourceId" -SubscriptionId $SubscriptionId)
+            Write-Host (ConvertTo-SafeText -Text "No diagnostic settings supported on $ResourceId" -SubscriptionId $SubscriptionId)
             return 0
         }
         throw

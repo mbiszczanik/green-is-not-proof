@@ -94,11 +94,11 @@ function Invoke-DiagnosticSettingLeftover {
                 "Removed $n diagnostic setting(s)"
             }
         }
-        Write-Host (ConvertTo-MaskedText -Text $line -SubscriptionId $sub)
+        Write-Host (ConvertTo-SafeText -Text $line -SubscriptionId $sub)
         return 0
     }
     catch {
-        Write-Host (ConvertTo-MaskedText -Text "$Step failed: $($_.Exception.Message)" -SubscriptionId $sub)
+        Write-Host (ConvertTo-SafeText -Text "$Step failed: $($_.Exception.Message)" -SubscriptionId $sub)
         return 1
     }
 }

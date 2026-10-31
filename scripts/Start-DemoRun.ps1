@@ -122,9 +122,9 @@ function Invoke-StartDemoRun {
         return 0
     }
     catch {
-        $msg = ConvertTo-MaskedText -Text "Start-DemoRun failed: $($_.Exception.Message)" -SubscriptionId $sub
+        $msg = ConvertTo-SafeText -Text "Start-DemoRun failed: $($_.Exception.Message)" -SubscriptionId $sub
         Write-Host $msg
-        if ($run) { Write-Host (ConvertTo-MaskedText -Text "Partial run: $($run.ResourceGroup) exists. Run scripts/Stop-DemoRun.ps1 -RunId $RunId to tear it down." -SubscriptionId $sub) }
+        if ($run) { Write-Host (ConvertTo-SafeText -Text "Partial run: $($run.ResourceGroup) exists. Run scripts/Stop-DemoRun.ps1 -RunId $RunId to tear it down." -SubscriptionId $sub) }
         return 1
     }
 }

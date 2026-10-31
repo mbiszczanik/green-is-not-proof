@@ -213,6 +213,18 @@ Describe 'Invoke-StopDemoRun' {
         Should -Invoke Get-AzResource -Times 6 -Exactly -ParameterFilter { $TagName }
     }
 
+    It 'an AuthorizationFailed message prints neither an e-mail address nor an object id' {
+        $mail = 'a.b' + '@' + 'example.org'
+        $oid = [guid]::NewGuid().ToString()
+        Mock Get-AzResourceGroup { throw "AuthorizationFailed: client '$mail' with object id '$oid' on /subscriptions/$($script:Sub)" }
+        $text = (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Out-String)
+        $text | Should -Not -Match 'example\.org'
+        $text | Should -Not -Match $oid
+        $text | Should -Not -Match $script:Sub
+        $text | Should -Match '<email>'
+        $text | Should -Match '<guid>'
+    }
+
     It 'fails when no run id is available' {
         $code = Invoke-StopDemoRun -PollDelaySeconds 0 -OutDir $script:out 6>&1 | Select-Object -Last 1
         $code | Should -Be 1
