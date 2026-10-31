@@ -3,12 +3,13 @@ BeforeAll {
         'Get-AzDiagnosticSetting'    = 'param($ResourceId)'
         'Remove-AzDiagnosticSetting' = 'param($ResourceId, $Name)'
     }
-    foreach ($n in $stubs.Keys) {
-        if (-not (Get-Command $n -ErrorAction SilentlyContinue)) { Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create($stubs[$n])) }
-    }
+    $script:StubNames = @($stubs.Keys)
+    foreach ($n in $stubs.Keys) { Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create($stubs[$n])) }
     . $PSScriptRoot/../lib/Mask.ps1
     . $PSScriptRoot/../lib/DiagnosticSettings.ps1
 }
+
+AfterAll { foreach ($n in $script:StubNames) { Remove-Item "function:global:$n" -ErrorAction SilentlyContinue } }
 
 Describe 'Remove-DemoDiagnosticSetting' {
     It 'removes every setting whatever its name' {

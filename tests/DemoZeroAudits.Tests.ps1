@@ -1,10 +1,8 @@
 BeforeAll {
     $script:Sub = [guid]::NewGuid().ToString()
-    foreach ($n in 'Get-AzContext', 'Get-AzResource') {
-        if (-not (Get-Command $n -ErrorAction SilentlyContinue)) {
-            Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create('param($ResourceGroupName, $TagName, $TagValue)'))
-        }
-    }
+    $script:StubNames = 'Get-AzContext', 'Get-AzResource'
+    Set-Item -Path 'function:global:Get-AzContext' -Value ([scriptblock]::Create('param()'))
+    Set-Item -Path 'function:global:Get-AzResource' -Value ([scriptblock]::Create('param($ResourceGroupName, $TagName, $TagValue)'))
     $script:Dir = "$PSScriptRoot/../demos/0-tag-is-not-ownership"
     . $script:Dir/Invoke-TagAudit.ps1
     . $script:Dir/Invoke-OwnershipAudit.ps1
@@ -32,6 +30,8 @@ BeforeAll {
         Mock Get-AzResource { $script:inv }
     }
 }
+
+AfterAll { foreach ($n in $script:StubNames) { Remove-Item "function:global:$n" -ErrorAction SilentlyContinue } }
 
 Describe 'Invoke-TagAudit' {
     BeforeEach { Initialize-Mock }
