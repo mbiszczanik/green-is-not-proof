@@ -69,7 +69,7 @@
 
 **Interfaces:**
 - Consumes: none.
-- Produces: `config/demo-resources.psd1` lists the run's priced items as `@{ Name; ServiceName; ArmSkuName; MeterName; Quantity; Unit = 'Hour' }` (VM `Standard_B1s` plus its OS disk, public IP Standard, storage account LRS hot, Log Analytics pay-as-you-go per GB with Quantity 0.1). `Get-RetailPrice([hashtable]$Item, [string]$Region, [scriptblock]$Fetch = $DefaultFetch) -> decimal` (EUR, from `https://prices.azure.com/api/retail/prices?currencyCode='EUR'&$filter=...`, `type eq 'Consumption'`). `Get-DemoRunCostEstimate([hashtable[]]$Items, [string]$Region, [decimal]$Hours = 2, [scriptblock]$Fetch) -> pscustomobject @{ TotalEur; Lines; PriceDate }`. `Assert-DemoRunBudget([pscustomobject]$Estimate, [decimal]$LimitEur = 2)` throws `Run estimate <x> EUR exceeds limit <y> EUR`.
+- Produces: `config/demo-resources.psd1` lists the run's priced items as `@{ Name; ServiceName; ArmSkuName; MeterName; Quantity; Unit = 'Hour' }` (VM `Standard_B1s` plus its OS disk, storage account LRS hot, Log Analytics pay-as-you-go per GB with Quantity 0.1). `Get-RetailPrice([hashtable]$Item, [string]$Region, [scriptblock]$Fetch = $DefaultFetch) -> decimal` (EUR, from `https://prices.azure.com/api/retail/prices?currencyCode='EUR'&$filter=...`, `type eq 'Consumption'`). `Get-DemoRunCostEstimate([hashtable[]]$Items, [string]$Region, [decimal]$Hours = 2, [scriptblock]$Fetch) -> pscustomobject @{ TotalEur; Lines; PriceDate }`. `Assert-DemoRunBudget([pscustomobject]$Estimate, [decimal]$LimitEur = 2)` throws `Run estimate <x> EUR exceeds limit <y> EUR`.
 
 - [ ] **Step 1: Write failing tests** with a fake `$Fetch`: `sums hourly items over hours` (VM 0.01/h x 2 h + IP 0.005/h x 2 h = 0.03); `per-GB item uses quantity` ; `missing price stops the run` (fetch returns no item -> throws `No retail price for <Name>`); `fetch failure stops the run` (fetch throws -> rethrows, no estimate); `budget over limit throws`; `budget under limit passes`; `estimate carries price date` (today, `yyyy-MM-dd`).
 - [ ] **Step 2: Run** tests; Expected: FAIL.
@@ -86,7 +86,7 @@
 - Consumes: Task 2 (`New-DemoRunId`, `Get-DemoResourceGroupName`, `Get-DemoTag`, `Write-DemoOutput`), Task 3 (`Get-DemoRunCostEstimate`, `Assert-DemoRunBudget`).
 - Produces: `scripts/Start-DemoRun.ps1 [-Location swedencentral] [-RunId <string>] -> writes out/run.json` with `@{ RunId; ResourceGroup; StorageAccountName; WorkspaceId; VnetName; RogueVmName; Location }`. Creates, in order: resource group with tags; Log Analytics workspace `log-gnp-<runId>`; storage account `stgnp<runId>` with a diagnostic setting `diag-to-log` on its blob service; VNet `vnet-gnp` with subnet `snet-app`; the code-declared resources listed in `config/demo-manifest.psd1`; and the rogue VM `vm-traffic` (`Standard_B1s`, no public IP, NIC in `snet-app`) carrying the same tags but absent from the manifest.
 
-- [ ] **Step 1: Write failing tests** (all Az cmdlets mocked): `cost guard runs before any New-Az call` (assert call order); `over-budget estimate creates nothing` (`New-AzResourceGroup` invoked 0 times, exit 1); `every New-Az call carries the run tags`; `run.json holds raw ids while console output is masked`.
+- [ ] **Step 1: Write failing tests** (all Az cmdlets mocked): `cost guard runs before any New-Az call` (assert call order); `over-budget estimate creates nothing` (`New-AzResourceGroup` invoked 0 times, exit 1); `every New-Az call that accepts -Tag carries the run tags`; `run.json holds raw ids while console output is masked`.
 - [ ] **Step 2: Run** tests; Expected: FAIL.
 - [ ] **Step 3: Implement**; `Set-StrictMode -Version Latest`, `$ErrorActionPreference = 'Stop'`, explicit `exit 1` with `$Host.SetShouldExit(1)` on any failure.
 - [ ] **Step 4: Run** tests; Expected: PASS (4).
@@ -160,10 +160,10 @@
 - Consumes: Task 2, `out/run.json`.
 - Produces: `Test-WorkspaceHealth([object]$Workspace) -> bool` (strict: demands a property value chosen in Step 1); the stubbed test passes with a hand-written object; `Show-LiveProperty.ps1` prints the same property from the live resource (`$null`).
 
-- [ ] **Step 1: Pick the property by a live read** during Task 11's first run (read-only: `Get-AzOperationalInsightsWorkspace`, `Get-AzStorageAccount`, `Get-AzDiagnosticSetting`): a property a plausible health check would demand that the live object returns empty or absent. Record the command and its output (masked) in the README.
+- [ ] **Step 1: Pick a candidate property from Az documentation** (`Get-AzOperationalInsightsWorkspace`, `Get-AzStorageAccount`, `Get-AzDiagnosticSetting` output types): a property a plausible health check would demand that a live object plausibly returns empty or absent. Mark it in the README as "to confirm by live read in Task 11"; Task 11 records the command and its masked output.
 - [ ] **Step 2: Write** `Health.Stubbed.Tests.ps1` with the stub object; run it; Expected: PASS (the false green).
 - [ ] **Step 3: Implement** `Test-WorkspaceHealth` and `Show-LiveProperty.ps1`; add a corrected `Test-WorkspaceHealth -Mode Lenient` that fails only on explicit `Failed`/`Deleting` states.
-- [ ] **Step 4: Run** the stubbed suite (PASS) and `Show-LiveProperty.ps1` against a live run (property empty); paste both outputs in the PR.
+- [ ] **Step 4: Run** the stubbed suite (PASS); `Show-LiveProperty.ps1` against a live run happens in Task 11.
 - [ ] **Step 5: Commit** `feat: add demo 3 stub versus live property`.
 
 ### Task 10: README and English cheat sheet
@@ -181,7 +181,7 @@
 
 - [ ] **Step 1:** Install Az locally: `pwsh -c "Install-Module Az -Scope CurrentUser -Force"`; verify `Get-Module Az.Accounts -ListAvailable` returns a version.
 - [ ] **Step 2:** Present to the speaker the resource table (every resource `Start-DemoRun` creates, with monthly and per-run price from Task 3 and its date, total) and ask approval for one run in the SkyCraft test subscription.
-- [ ] **Step 3:** After approval: `Connect-AzAccount` by the speaker, then `./scripts/Start-DemoRun.ps1`, demos 0, 1, 3 live, demo 2 offline, `./scripts/Stop-DemoRun.ps1`. Expected: demo 0 audit red listing `vm-traffic`; demo 1 `List` shows the re-attached setting; teardown exit 0 and no `runId`-tagged resource left.
+- [ ] **Step 3:** After approval: `Connect-AzAccount` by the speaker, then `./scripts/Start-DemoRun.ps1`, demos 0, 1, 3 live (confirm Task 9's property is empty live; swap it if not), demo 2 offline, `./scripts/Stop-DemoRun.ps1`. Expected: demo 0 audit red listing `vm-traffic`; demo 1 `List` shows the re-attached setting; teardown exit 0 and no `runId`-tagged resource left.
 - [ ] **Step 4:** Record in the PR a `Live-verified:` line per demo with command, exit code, date (output masked). Mark the PR ready; `Closes #1` only if every acceptance criterion in #1 ran on this branch, else `Refs #1` with the owed items listed.
 - [ ] **Step 5:** Delete `PLAN.md` in the PR's last commit; after merge, record remaining non-repo work (Tasks 12-16) as issues.
 
