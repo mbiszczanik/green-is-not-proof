@@ -29,9 +29,13 @@ example scripts are never executed, only parsed.
 
 ## What counts as guarded
 
-A `New|Set|Remove|Register|Update|Start|Stop|Add|Install-Az*` call is guarded when it sits in the non-dry branch
+A call to `<Verb>-Az*` is guarded when it sits in the non-dry branch
 of an `if` on `$DryRun` or `$WhatIfPreference` (the `else`, or the body of `if (-not $DryRun)`), or follows an
 early `if ($DryRun) { ...; return }` (`exit` and `break` count too). Anything else is reported.
+
+The verbs counted as mutating are the default of `Find-UnguardedMutation` in `lib/DryRunGuard.ps1`: New, Set, Remove,
+Register, Update, Start, Stop, Add, Install, Restart, Invoke, Grant, Revoke, Enable, Disable, Publish, Move, Import,
+Restore, Reset, Rename, Clear, Save, Submit, Suspend, Resume, Unregister, Sync, Backup, Mount, Dismount, Approve, Deny.
 
 ## What it does not prove
 

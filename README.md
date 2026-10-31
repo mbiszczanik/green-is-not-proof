@@ -30,13 +30,23 @@ recorded in this repository.
 
 ## Run a demo session
 
-From the repository root:
+One-time local setup, once per clone and machine:
+
+1. Name the demo subscription: set the environment variable `GNP_SUBSCRIPTION_ID`, or put the id on the first
+   line of `~/.config/green-is-not-proof/subscription.txt`. Setup, demos and teardown refuse to run when
+   the current Azure subscription is a different one (`Set-AzContext` first).
+2. Create `~/.config/green-is-not-proof/deny.txt` with the tenant and organisation names that must never appear in
+   the repository, one per line. The public-content check reads it; the file is never committed.
+3. Enable the pre-push check: `git config core.hooksPath .githooks`.
+
+Then, from the repository root:
 
 ```powershell
 pwsh -NoProfile -File ./scripts/Start-DemoRun.ps1 -Location swedencentral; $LASTEXITCODE
 ```
 
-This runs the cost guard, creates one resource group with the demo resources and writes `out/run.json`.
+This checks the subscription, runs the cost guard, creates one resource group with the demo resources and writes
+`out/run.json`. It refuses to start while an `out/run.json` from an earlier run exists: tear that run down first.
 Then run the demos in order. Each has its own README with the on-stage steps:
 
 1. [Demo 0: a tag is not proof of ownership](demos/0-tag-is-not-ownership/README.md)
@@ -53,6 +63,9 @@ pwsh -NoProfile -File ./scripts/Stop-DemoRun.ps1; $LASTEXITCODE
 Process exit code: 0 on success, 1 on failure (run them with `pwsh -File` as above so the code is real). After `Stop-DemoRun.ps1`, a non-zero exit code means
 something is left in the subscription: read the output before leaving the room. Pass `-RunId` to tear
 down a run whose `out/run.json` is gone.
+
+Creating the VNet makes Azure create a free Network Watcher in `NetworkWatcherRG`, outside the run's group.
+Teardown leaves it on purpose: it is shared, and nothing in it is tagged with the run id.
 
 ## Cost
 
@@ -79,13 +92,15 @@ Invoke-Pester ./tests -Output Detailed
 CI runs `./tests`, PSScriptAnalyzer and the public-content check. The suites under `demos/` are excluded on
 purpose: the on-stage suites of demos 2 and 3 are shown live, and demo 2 is meant to fail red.
 
-Enable the pre-push public-content check with `git config core.hooksPath .githooks`.
+The pre-push hook (`git config core.hooksPath .githooks`) checks the working tree and every commit being pushed; CI checks pull request commits too.
 
 ## Safety
 
 - Nothing is deleted outside the run's resource group.
-- Teardown stops on any lookup error instead of guessing that something is gone.
-- Output masks the subscription id. `out/run.json` holds raw ids and is gitignored.
+- Teardown stops on any lookup error instead of guessing that something is gone, and stops before deleting
+  anything if demo 1 left the run's storage account missing (its diagnostic setting may survive).
+- Output masks the subscription id, e-mail addresses and any GUID not on `tools/public-content-allow.txt`.
+- `out/run.json` holds raw ids and is gitignored.
 
 ## More
 
