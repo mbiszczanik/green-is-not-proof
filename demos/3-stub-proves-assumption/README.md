@@ -9,7 +9,7 @@ Candidate property: `PrivateLinkScopedResources`. To be confirmed by a live read
 live, swap it for one that is not.
 
 I chose it from the documented `PSWorkspace` output type of `Get-AzOperationalInsightsWorkspace`
-(https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.commands.operationalinsights.models.psworkspace).
+(<https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.commands.operationalinsights.models.psworkspace>).
 It lists the private link scopes the workspace belongs to, so it only has content in that configuration. The
 documentation does not say what a fresh workspace returns; this is reasoning, not a live observation.
 
