@@ -24,7 +24,7 @@ Each step prints one masked line.
 
 The point lands at step 4: the delete was green, and the old setting is still listed on the new account.
 
-Live result: to be confirmed in a live run (Task 11 of the plan). Until then, treat step 4 as the
+Live result: not yet recorded. Until a live run confirms it, treat step 4 as the
 expected outcome, not a recorded one.
 
 ## Cost

@@ -5,7 +5,7 @@ demanded property filled in. The real resource may never return that property.
 
 The rule: a stubbed test is a declaration of what you believe the API returns; one live read is proof.
 
-Candidate property: `PrivateLinkScopedResources`. To be confirmed by a live read (Task 11); if it is populated
+Candidate property: `PrivateLinkScopedResources`. Not yet confirmed by a live read; if it is populated
 live, swap it for one that is not.
 
 I chose it from the documented `PSWorkspace` output type of `Get-AzOperationalInsightsWorkspace`

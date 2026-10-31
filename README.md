@@ -22,7 +22,7 @@ recorded in this repository.
 ## Prerequisites
 
 - PowerShell 7.6
-- Pester 5.5 or later
+- Pester 5.5 to 5.x
 - The Az PowerShell modules: Az.Accounts, Az.Resources, Az.Storage, Az.Monitor, Az.OperationalInsights,
   Az.Network, Az.Compute
 - A test subscription in which you may create resources
@@ -33,7 +33,7 @@ recorded in this repository.
 From the repository root:
 
 ```powershell
-./scripts/Start-DemoRun.ps1 -Location swedencentral
+pwsh -NoProfile -File ./scripts/Start-DemoRun.ps1 -Location swedencentral; $LASTEXITCODE
 ```
 
 This runs the cost guard, creates one resource group with the demo resources and writes `out/run.json`.
@@ -47,11 +47,10 @@ Then run the demos in order. Each has its own README with the on-stage steps:
 Tear everything down and check that nothing remains:
 
 ```powershell
-./scripts/Stop-DemoRun.ps1
-$LASTEXITCODE
+pwsh -NoProfile -File ./scripts/Stop-DemoRun.ps1; $LASTEXITCODE
 ```
 
-Both scripts exit 0 on success and 1 on any failure. After `Stop-DemoRun.ps1`, a non-zero exit code means
+Process exit code: 0 on success, 1 on failure (run them with `pwsh -File` as above so the code is real). After `Stop-DemoRun.ps1`, a non-zero exit code means
 something is left in the subscription: read the output before leaving the room. Pass `-RunId` to tear
 down a run whose `out/run.json` is gone.
 
@@ -69,7 +68,7 @@ created, and refuses to continue above the per-run limit of 2 EUR. Its live esti
 | Log Analytics, 0.1 GB | 0.26 |
 | Total | 0.28794 |
 
-Prices change; the guard reads them again on every run.
+The Log Analytics figure ignores the free 5 GB tier on purpose (conservative). Prices change; the guard reads them again on every run.
 
 ## Tests and CI
 

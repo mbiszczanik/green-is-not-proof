@@ -8,15 +8,15 @@ A green check is what a system says about itself. Proof is what you read back fr
 Get-AzResource -ResourceGroupName $rg | Where-Object Name -notin $declaredNames
 ```
 
-Anyone can copy a tag, so list the whole group and compare it with what the code declares.
+Anyone can copy a tag, so list the whole group and compare it with `$declaredNames`, taken from the code (the manifest).
 
-## 2. A successful delete is a declaration; the post-delete listing of non-cascaded children is proof
+## 2. A successful delete is a declaration; listing the non-cascaded children is proof
 
 ```powershell
 Get-AzDiagnosticSetting -ResourceId "$($storage.Id)/blobServices/default"
 ```
 
-A diagnostic setting is its own resource, so deleting the parent can leave it behind: list it after the delete.
+A diagnostic setting is its own resource: after deleting and recreating the account with the same name, run this on the new account.
 
 ## 3. A dry-run switch is a declaration; a syntax-tree test is proof
 
