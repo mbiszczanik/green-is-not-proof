@@ -2,8 +2,11 @@ BeforeAll {
     $script:Tool = Join-Path $PSScriptRoot '../tools/Test-PublicContent.ps1'
     $script:Pwsh = (Get-Process -Id $PID).Path
     # Fixtures are built at runtime so this tracked file stays clean.
-    $script:Mail = 'a.b' + '@' + 'example.org'
-    $script:Guid = '1b2c3d4e-0000-4000-8000-' + '123456789abc'
+    $script:Mail = 'a.b' + '@' + 'mailhost.invalid'
+    $script:ReservedMail = 'a.b' + '@' + 'example.org'
+    $script:ReservedSubMail = 'a.b' + '@' + 'mail.example.com'
+    $script:FixtureGuid = '1b2c3d4e-0000-4000-8000-' + '123456789abc'
+    $script:Guid = '9a8b7c6d-0000-4000-8000-' + '0123456789ab'
     $script:ReaderGuid = 'acdd72a7-3385-48ef-' + 'bd42-f606fba81ae7'
 
     function script:Invoke-Tool {
@@ -30,6 +33,20 @@ Describe 'Test-PublicContent' {
         $r = Invoke-Tool -Path $f -DenyListPath $script:NoDeny
         $r.Code | Should -Be 1
         $r.Output | Should -Match 'mail\.txt:1: e-mail'
+    }
+    It 'allows an address at a reserved example domain, also a subdomain' {
+        $f = New-Fixture 'reserved.txt' "$script:ReservedMail and $script:ReservedSubMail"
+        (Invoke-Tool -Path $f -DenyListPath $script:NoDeny).Code | Should -Be 0
+    }
+    It 'still flags an address at a lookalike of a reserved domain' {
+        $f = New-Fixture 'lookalike.txt' ('a.b' + '@' + 'notexample.org')
+        $r = Invoke-Tool -Path $f -DenyListPath $script:NoDeny
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'lookalike\.txt:1: e-mail'
+    }
+    It 'allows the fictional fixture GUID through the default allow list' {
+        $f = New-Fixture 'fixture-guid.txt' "id $script:FixtureGuid"
+        (Invoke-Tool -Path $f -DenyListPath $script:NoDeny).Code | Should -Be 0
     }
     It 'flags a GUID' {
         $f = New-Fixture 'guid.txt' "id $script:Guid"

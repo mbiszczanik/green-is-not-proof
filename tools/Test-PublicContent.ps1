@@ -48,7 +48,7 @@ else {
     Write-Warning "deny list not found at $DenyListPath; checking e-mails and GUIDs only"
 }
 
-$emailRx = [regex]'[\w.+-]+@[\w-]+\.[\w.-]+'
+$emailRx = [regex]'[\w.+-]+@([\w-]+\.[\w.-]+)'
 $guidRx = [regex]'[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}'
 $hits = 0
 $checked = 0
@@ -73,7 +73,10 @@ function Find-Hit([string]$Text) {
     foreach ($line in $Text -split '?
 ') {
         $lineNo++
-        if ($emailRx.IsMatch($line)) { [pscustomobject]@{ Line = $lineNo; Kind = 'e-mail' } }
+        foreach ($m in $emailRx.Matches($line)) {
+            # RFC 2606 reserved domains are fictional by definition.
+            if ($m.Groups[1].Value -notmatch '(^|\.)example\.(com|org|net)$') { [pscustomobject]@{ Line = $lineNo; Kind = 'e-mail' } }
+        }
         foreach ($m in $guidRx.Matches($line)) {
             if (-not $allowed.ContainsKey($m.Value.ToLowerInvariant())) { [pscustomobject]@{ Line = $lineNo; Kind = 'guid' } }
         }
