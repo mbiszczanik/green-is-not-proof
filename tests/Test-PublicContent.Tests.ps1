@@ -119,7 +119,7 @@ Describe 'Test-PublicContent -CommitRange' {
         $null = New-Item -ItemType Directory -Path $script:Repo
         & git -C $script:Repo init -q
         # Plumbing builds commits without hooks or a configured identity.
-        function script:New-TestCommit([string]$Parent, [string]$Message, [hashtable]$Files) {
+        function script:New-TestCommit([string]$Parent, [string]$Message, [hashtable]$Files, [string]$Parent2) {
             $env:GIT_AUTHOR_NAME = 'fixture'; $env:GIT_AUTHOR_EMAIL = ('fixture' + '@' + 'example.invalid')
             $env:GIT_COMMITTER_NAME = 'fixture'; $env:GIT_COMMITTER_EMAIL = ('fixture' + '@' + 'example.invalid')
             $idx = Join-Path $script:Repo 'fixture.idx'
@@ -135,6 +135,7 @@ Describe 'Test-PublicContent -CommitRange' {
                 $tree = (& git -C $script:Repo write-tree)
                 $a = @('commit-tree', $tree, '-m', $Message)
                 if ($Parent) { $a += @('-p', $Parent) }
+                if ($Parent2) { $a += @('-p', $Parent2) }
                 (& git -C $script:Repo @a)
             }
             finally {
@@ -172,6 +173,15 @@ Describe 'Test-PublicContent -CommitRange' {
         $r = Invoke-Range "$($script:Base)..$c"
         $r.Code | Should -Be 0
         $r.Output | Should -Match 'public-content: clean'
+    }
+
+    It 'scans a file introduced by a merge commit' {
+        $c1 = New-TestCommit $script:Base 'left' @{ 'l.txt' = 'clean' }
+        $c2 = New-TestCommit $script:Base 'right' @{ 'r.txt' = 'clean' }
+        $m = New-TestCommit $c1 'merge' @{ 'evil.txt' = "contact $script:Mail" } $c2
+        $r = Invoke-Range "$($script:Base)..$m"
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match ('commit {0}: e-mail \(evil\.txt' -f $m.Substring(0, 7))
     }
 
     It 'lists a binary blob in the range as skipped' {

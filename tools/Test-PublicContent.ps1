@@ -123,8 +123,8 @@ if ($CommitRange) {
         foreach ($h in Find-Hit ((Invoke-Git @('log', '-1', '--format=%B', $sha)) -join "`n")) {
             Write-Output "commit ${short}: $($h.Kind) (message)"; $hits++
         }
-        $names = @(Invoke-Git @('diff-tree', '--root', '--no-commit-id', '--name-only', '-r', '--diff-filter=AM', '--no-renames', '-z', $sha) |
-                ForEach-Object { $_ -split "`0" } | Where-Object { $_ })
+        $names = @(Invoke-Git @('diff-tree', '-m', '-r', '--root', '--no-commit-id', '--name-only', '--diff-filter=AMT', '--no-renames', '-z', $sha) |
+                ForEach-Object { $_ -split "`0" } | Where-Object { $_ } | Select-Object -Unique)
         foreach ($name in $names) {
             $text = ConvertFrom-ScanByteArray (Get-GitBlobContent "${sha}:$name")
             if ($null -eq $text) { Write-Output "skipped binary: $name"; continue }
