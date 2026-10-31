@@ -44,6 +44,7 @@ function Invoke-ShowLiveProperty {
         if (-not $RunId) { $RunId = $run.RunId }
         if ($RunId -notmatch '^\d{12}$') { throw "RunId must be 12 digits (yyyyMMddHHmm), got '$RunId'" }
         if ($run -and $run.RunId -ne $RunId) { throw "run.json holds run $($run.RunId), not $RunId" }
+        Assert-DemoRunSubscription -Run $run -Current $sub
         $rg = Get-DemoResourceGroupName -RunId $RunId
 
         $ws = Get-AzOperationalInsightsWorkspace -ResourceGroupName $rg -Name "log-gnp-$RunId"

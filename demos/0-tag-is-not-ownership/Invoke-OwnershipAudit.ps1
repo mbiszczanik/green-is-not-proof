@@ -36,6 +36,7 @@ function Invoke-OwnershipAudit {
         if (-not $ctx) { Write-Host 'Run Connect-AzAccount first'; return 1 }
         $sub = $ctx.Subscription.Id
         $RunId = Resolve-AuditRunId -RunId $RunId -OutDir $OutDir
+        Assert-DemoRunSubscription -Run (Read-DemoRun -OutDir $OutDir -RunId $RunId) -Current $sub
         $rg = Get-DemoResourceGroupName -RunId $RunId
         $manifest = Import-PowerShellDataFile $PSScriptRoot/../../config/demo-manifest.psd1
         $expected = @($manifest.Names | ForEach-Object { $_ -replace '\{runId\}', $RunId })

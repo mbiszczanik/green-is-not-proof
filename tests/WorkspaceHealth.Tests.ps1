@@ -18,10 +18,11 @@ BeforeAll {
     function script:Initialize-Mock([object]$Workspace) {
         $script:out = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $script:out
-        @{ RunId = '202611181805'; ResourceGroup = 'rg-gnp-202611181805'; Location = 'swedencentral' } |
+        @{ RunId = '202611181805'; SubscriptionId = $script:Sub; ResourceGroup = 'rg-gnp-202611181805'; Location = 'swedencentral' } |
             ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         $script:Ws = $Workspace
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
+        Mock Get-DemoExpectedSubscriptionId { $script:Sub }
         Mock Get-AzOperationalInsightsWorkspace { $script:Ws }
     }
 }
@@ -76,6 +77,14 @@ Describe 'Invoke-ShowLiveProperty' {
         $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
         $text | Should -Not -Match $script:Sub
         $text | Should -Match 'Strict health: True'
+    }
+    It 'refuses a different current subscription before any read' {
+        Initialize-Mock (New-TestWorkspace)
+        Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = [guid]::NewGuid().ToString() } } }
+        $res = Invoke-ShowLiveProperty -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'not the demo subscription'
+        Should -Invoke Get-AzOperationalInsightsWorkspace -Times 0 -Exactly
     }
     It 'returns 1 without run.json and without -RunId' {
         Initialize-Mock (New-TestWorkspace)

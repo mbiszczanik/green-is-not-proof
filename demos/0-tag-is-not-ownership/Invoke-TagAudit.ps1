@@ -15,6 +15,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. $PSScriptRoot/../../lib/RunContext.ps1
 . $PSScriptRoot/../../lib/Mask.ps1
 . $PSScriptRoot/../../lib/Ownership.ps1
 
@@ -34,6 +35,7 @@ function Invoke-TagAudit {
         if (-not $ctx) { Write-Host 'Run Connect-AzAccount first'; return 1 }
         $sub = $ctx.Subscription.Id
         $RunId = Resolve-AuditRunId -RunId $RunId -OutDir $OutDir
+        Assert-DemoRunSubscription -Run (Read-DemoRun -OutDir $OutDir -RunId $RunId) -Current $sub
         $found = @(Get-AzResource -TagName 'project' -TagValue 'green-is-not-proof' |
                 Where-Object { $_.Tags -and $_.Tags['runId'] -eq $RunId })
         if ($found.Count -eq 0) { throw 'Empty inventory' }

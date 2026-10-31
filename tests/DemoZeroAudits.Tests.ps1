@@ -28,6 +28,7 @@ BeforeAll {
         )
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
         Mock Get-AzResource { $script:inv }
+        Mock Get-DemoExpectedSubscriptionId { $script:Sub }
     }
 }
 
@@ -54,6 +55,30 @@ Describe 'Invoke-TagAudit' {
 
     It 'fails without a run id and no run.json' {
         (Invoke-Capture { Invoke-TagAudit -OutDir (Join-Path $TestDrive 'none') }).Code | Should -Be 1
+    }
+}
+
+Describe 'subscription pinning in the audits' {
+    BeforeEach { Initialize-Mock }
+
+    It 'both audits refuse a different subscription and read no resources' {
+        Mock Get-DemoExpectedSubscriptionId { [guid]::NewGuid().ToString() }
+        foreach ($b in { Invoke-TagAudit -RunId $script:RunIdValue -OutDir $TestDrive }, { Invoke-OwnershipAudit -RunId $script:RunIdValue -OutDir $TestDrive }) {
+            $r = Invoke-Capture $b
+            $r.Code | Should -Be 1
+            $r.Text | Should -Match 'not the demo subscription'
+        }
+        Should -Invoke Get-AzResource -Times 0 -Exactly
+    }
+
+    It 'a run.json without SubscriptionId is refused' {
+        $d = Join-Path $TestDrive 'pin'
+        $null = New-Item -ItemType Directory -Path $d
+        @{ RunId = $script:RunIdValue } | ConvertTo-Json | Set-Content (Join-Path $d 'run.json')
+        $r = Invoke-Capture { Invoke-TagAudit -OutDir $d }
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'no SubscriptionId'
+        Should -Invoke Get-AzResource -Times 0 -Exactly
     }
 }
 

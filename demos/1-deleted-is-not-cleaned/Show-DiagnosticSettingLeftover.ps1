@@ -5,6 +5,7 @@ Demo 1: a diagnostic setting survives its storage account's deletion and re-atta
 One step per run, one masked line each, so the speaker advances on stage: Show, Delete, Recreate, List, Clean.
 Uses the run's storage account and its diag-to-log setting on the blob service. Needs a run from
 scripts/Start-DemoRun.ps1 (-RunId, else out/run.json). Creates nothing beyond the run's own account.
+The current subscription must match the run's (run.json) or the configured demo subscription.
 .EXAMPLE
 ./demos/1-deleted-is-not-cleaned/Show-DiagnosticSettingLeftover.ps1 -Step Delete
 #>
@@ -50,6 +51,7 @@ function Invoke-DiagnosticSettingLeftover {
         $rg = Get-DemoResourceGroupName -RunId $RunId
         $name = "stgnp$RunId"
         if ($run -and $run.RunId -ne $RunId) { throw "run.json holds run $($run.RunId), not $RunId" }
+        Assert-DemoRunSubscription -Run $run -Current $sub
         $blobId = "/subscriptions/$sub/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$name/blobServices/default"
 
         $line = switch ($Step) {

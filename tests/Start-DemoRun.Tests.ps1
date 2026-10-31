@@ -2,6 +2,7 @@ BeforeAll {
     $script:Sub = [guid]::NewGuid().ToString()
     $stubs = @{
         'Get-AzContext'                            = 'param()'
+        'Get-AzResourceGroup'                      = 'param($Name)'
         'New-AzResourceGroup'                      = 'param($Name, $Location, $Tag)'
         'New-AzOperationalInsightsWorkspace'       = 'param($ResourceGroupName, $Name, $Location, $Sku, $Tag)'
         'New-AzStorageAccount'                     = 'param($ResourceGroupName, $Name, $Location, $SkuName, $Kind, $Tag)'
@@ -29,6 +30,8 @@ BeforeAll {
         $script:Calls = [System.Collections.Generic.List[object]]::new()
         $script:out = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
+        Mock Get-DemoExpectedSubscriptionId { $script:Sub }
+        Mock Get-AzResourceGroup { throw 'ResourceGroupNotFound: Resource group could not be found.' }
         Mock Get-DemoRunCostEstimate { $script:Calls.Add(@{ Cmd = 'cost' }); [pscustomobject]@{ TotalEur = 0.1; Lines = @(); PriceDate = '2026-11-01' } }
         Mock New-DemoSshKey { $script:Calls.Add(@{ Cmd = 'ssh' }); 'ssh-ed25519 AAAAFAKE demo' }
         Mock New-AzResourceGroup { $script:Calls.Add(@{ Cmd = 'New-AzResourceGroup'; Tag = $Tag }) }
@@ -122,6 +125,49 @@ Describe 'Invoke-StartDemoRun' {
         $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
         $text | Should -Not -Match $script:Sub
         $text | Should -Match '<sub>'
+    }
+
+    It 'refuses a subscription other than the configured one before the cost guard' {
+        Mock Get-DemoExpectedSubscriptionId { [guid]::NewGuid().ToString() }
+        $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
+        $text | Should -Match 'not the demo subscription'
+        $text | Should -Not -Match $script:Sub
+        Should -Invoke Get-DemoRunCostEstimate -Times 0 -Exactly
+        Should -Invoke New-AzResourceGroup -Times 0 -Exactly
+    }
+
+    It 'refuses when no demo subscription is configured' {
+        Mock Get-DemoExpectedSubscriptionId { '' }
+        $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'not configured'
+        Should -Invoke New-AzResourceGroup -Times 0 -Exactly
+    }
+
+    It 'writes SubscriptionId into run.json' {
+        $null = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        (Get-Content (Join-Path $script:out 'run.json') -Raw | ConvertFrom-Json).SubscriptionId | Should -Be $script:Sub
+    }
+
+    It 'refuses to start while a previous run.json exists' {
+        $null = New-Item -ItemType Directory -Force -Path $script:out
+        @{ RunId = '202611170900' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'A previous run \(202611170900\) was not torn down\. Run scripts/Stop-DemoRun\.ps1 first\.'
+        Should -Invoke Get-DemoRunCostEstimate -Times 0 -Exactly
+        Should -Invoke New-AzResourceGroup -Times 0 -Exactly
+        (Get-Content (Join-Path $script:out 'run.json') -Raw | ConvertFrom-Json).RunId | Should -Be '202611170900'
+    }
+
+    It 'stops when the resource group already exists' {
+        Mock Get-AzResourceGroup { [pscustomobject]@{ ResourceGroupName = 'rg-gnp-202611181805' } }
+        $res = Invoke-StartDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'already exists'
+        Should -Invoke New-AzResourceGroup -Times 0 -Exactly
     }
 
     It 'rejects a run id that is not 12 digits' {

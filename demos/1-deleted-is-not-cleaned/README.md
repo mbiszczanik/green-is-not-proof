@@ -27,6 +27,12 @@ The point lands at step 4: the delete was green, and the old setting is still li
 Live result: not yet recorded. Until a live run confirms it, treat step 4 as the
 expected outcome, not a recorded one.
 
+## If you stop after step 2
+
+If the account is deleted and not recreated, `scripts/Stop-DemoRun.ps1` stops before deleting anything and
+exits 1 with `Storage <name> from this run is missing; its diagnostic setting may survive.` Run `-Step Recreate`,
+then `-Step Clean`, then run the teardown again.
+
 ## Cost
 
 No extra resources beyond the run: the recreated account replaces the deleted one. `scripts/Stop-DemoRun.ps1`

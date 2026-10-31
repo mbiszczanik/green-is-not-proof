@@ -7,6 +7,8 @@ storage account with a blob diagnostic setting, VNet with subnet snet-app, then 
 (vm-traffic, Standard_B1s, Ubuntu 22.04, no public IP, SSH key generated into out/). The VM uses a
 New-AzVMConfig chain so the key and image are explicit. It is absent from config/demo-manifest.psd1.
 run.json holds raw ids (out/ is gitignored); console output masks the subscription id.
+The current subscription must match GNP_SUBSCRIPTION_ID or ~/.config/green-is-not-proof/subscription.txt,
+and a leftover out/run.json from an untorn run stops the start.
 .EXAMPLE
 ./scripts/Start-DemoRun.ps1 -Location swedencentral
 #>
@@ -60,8 +62,15 @@ function Invoke-StartDemoRun {
         $ctx = Get-AzContext
         if (-not $ctx) { Write-Host 'Run Connect-AzAccount first'; return 1 }
         $sub = $ctx.Subscription.Id
+        Assert-DemoSubscription -Expected (Get-DemoExpectedSubscriptionId) -Current $sub
         if (-not $RunId) { $RunId = New-DemoRunId }
         if ($RunId -notmatch '^\d{12}$') { throw "RunId must be 12 digits (yyyyMMddHHmm), got '$RunId'" }
+        $runFile = Join-Path $OutDir 'run.json'
+        if (Test-Path -LiteralPath $runFile) {
+            $prev = (Get-Content -LiteralPath $runFile -Raw | ConvertFrom-Json).RunId
+            Write-Host "A previous run ($prev) was not torn down. Run scripts/Stop-DemoRun.ps1 first."
+            return 1
+        }
 
         $items = (Import-PowerShellDataFile $PSScriptRoot/../config/demo-resources.psd1).Items
         $estimate = Get-DemoRunCostEstimate -Items $items -Region $Location -Hours 2
@@ -74,11 +83,11 @@ function Invoke-StartDemoRun {
         $vnetName = 'vnet-gnp'
         $vmName = 'vm-traffic'
 
+        if (Test-DemoResourceGroup -Name $rg) { throw "Resource group $rg already exists; refusing to reuse it" }
         $null = New-Item -ItemType Directory -Force -Path $OutDir
-        $runFile = Join-Path $OutDir 'run.json'
         $null = New-AzResourceGroup -Name $rg -Location $Location -Tag $tag
         # Written right after the group exists so a later failure still leaves a record for teardown.
-        $run = [ordered]@{ RunId = $RunId; ResourceGroup = $rg; Location = $Location }
+        $run = [ordered]@{ RunId = $RunId; SubscriptionId = $sub; ResourceGroup = $rg; Location = $Location }
         $run | ConvertTo-Json | Set-Content -Path $runFile -Encoding utf8
         $workspace = New-AzOperationalInsightsWorkspace -ResourceGroupName $rg -Name "log-gnp-$RunId" -Location $Location -Sku PerGB2018 -Tag $tag
         $run.WorkspaceId = $workspace.ResourceId

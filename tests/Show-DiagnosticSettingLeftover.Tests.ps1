@@ -18,9 +18,10 @@ BeforeAll {
         $script:Settings = @([pscustomobject]@{ Name = 'diag-to-log' })
         $script:out = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $script:out
-        @{ RunId = '202611181805'; ResourceGroup = 'rg-gnp-202611181805'; StorageAccountName = 'stgnp202611181805'; Location = 'swedencentral' } |
+        @{ RunId = '202611181805'; SubscriptionId = $script:Sub; ResourceGroup = 'rg-gnp-202611181805'; StorageAccountName = 'stgnp202611181805'; Location = 'swedencentral' } |
             ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
+        Mock Get-DemoExpectedSubscriptionId { $script:Sub }
         Mock Get-AzDiagnosticSetting { $script:Settings }
         Mock Remove-AzDiagnosticSetting { $script:Settings = @() }
         Mock Remove-AzStorageAccount { }
@@ -123,7 +124,7 @@ Describe 'Invoke-DiagnosticSettingLeftover' {
     }
 
     It 'recreate fails when run.json has no Location' {
-        @{ RunId = '202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        @{ RunId = '202611181805'; SubscriptionId = $script:Sub } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         $r = Step Recreate
         $r.Code | Should -Be 1
         $r.Text | Should -Match 'no Location'
@@ -133,6 +134,28 @@ Describe 'Invoke-DiagnosticSettingLeftover' {
     It 'Show prints none when there are no settings' {
         $script:Settings = @()
         (Step Show).Text | Should -Be 'Storage stgnp202611181805 has diagnostic setting(s): none'
+    }
+
+    It 'refuses a different subscription and calls nothing' {
+        Mock Get-DemoExpectedSubscriptionId { [guid]::NewGuid().ToString() }
+        @{ RunId = '202611181805'; SubscriptionId = [guid]::NewGuid().ToString(); Location = 'swedencentral' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        foreach ($n in 'Delete', 'Recreate', 'Clean') {
+            $r = Step $n
+            $r.Code | Should -Be 1
+            $r.Text | Should -Match 'not the demo subscription'
+        }
+        Should -Invoke Remove-AzStorageAccount -Times 0 -Exactly
+        Should -Invoke New-AzStorageAccount -Times 0 -Exactly
+        Should -Invoke Remove-AzDiagnosticSetting -Times 0 -Exactly
+    }
+
+    It 'with only -RunId and no configuration it refuses' {
+        Remove-Item (Join-Path $script:out 'run.json')
+        Mock Get-DemoExpectedSubscriptionId { '' }
+        $r = Step Delete '202611181805'
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'not configured'
+        Should -Invoke Remove-AzStorageAccount -Times 0 -Exactly
     }
 
     It 'fails when -RunId differs from run.json' {
