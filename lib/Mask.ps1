@@ -18,19 +18,30 @@ function ConvertTo-MaskedText {
 function Write-DemoOutput {
     <#
     .SYNOPSIS
-    Writes an object as table text with the subscription id masked.
+    Writes an object as table text with the subscription id masked in every value.
     .EXAMPLE
     Get-AzResourceGroup | Write-DemoOutput -SubscriptionId $id
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory, ValueFromPipeline)][object]$InputObject,
-        [string]$SubscriptionId
+        [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$SubscriptionId
     )
     begin { $items = [System.Collections.Generic.List[object]]::new() }
-    process { $items.Add($InputObject) }
+    process {
+        # Mask values before Format-Table, which can truncate or wrap a cell and split the id.
+        if ($InputObject -is [string] -or $InputObject.GetType().IsPrimitive) {
+            $items.Add((ConvertTo-MaskedText -Text ([string]$InputObject) -SubscriptionId $SubscriptionId))
+            return
+        }
+        $masked = [ordered]@{}
+        foreach ($p in $InputObject.PSObject.Properties) {
+            $masked[$p.Name] = ConvertTo-MaskedText -Text ([string]$p.Value) -SubscriptionId $SubscriptionId
+        }
+        $items.Add([pscustomobject]$masked)
+    }
     end {
-        $text = ($items | Format-Table -AutoSize | Out-String).TrimEnd()
+        $text = ($items | Format-Table -AutoSize | Out-String -Width 4096).TrimEnd()
         Write-Output (ConvertTo-MaskedText -Text $text -SubscriptionId $SubscriptionId)
     }
 }

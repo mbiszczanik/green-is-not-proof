@@ -28,6 +28,19 @@ Describe 'ConvertTo-MaskedText' {
 Describe 'Write-DemoOutput' {
     It 'writes the object as masked table text' {
         $o = [pscustomobject]@{ Id = "/subscriptions/$sub/x" }
-        (Write-DemoOutput -InputObject $o -SubscriptionId $sub) -join "`n" | Should -Not -Match $sub
+        $out = (Write-DemoOutput -InputObject $o -SubscriptionId $sub) -join "`n"
+        $out | Should -Not -Match $sub
+        $out | Should -Match '<sub>'
+    }
+    It 'long id is masked in table output' {
+        $long = "/subscriptions/$sub/resourceGroups/" + ('x' * 220) + '/providers/p'
+        $o = [pscustomobject]@{ Id = $long; Name = 'n' }
+        $out = (Write-DemoOutput -InputObject $o -SubscriptionId $sub) -join "`n"
+        $out | Should -Not -Match $sub
+        $out | Should -Not -Match $sub.Substring(0, 8)
+        $out | Should -Match '<sub>'
+    }
+    It 'empty subscription id is rejected' {
+        { Write-DemoOutput -InputObject 'x' -SubscriptionId '' } | Should -Throw
     }
 }
