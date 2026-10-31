@@ -33,6 +33,13 @@ A `New|Set|Remove|Register|Update|Start|Stop|Add|Install-Az*` call is guarded wh
 of an `if` on `$DryRun` or `$WhatIfPreference` (the `else`, or the body of `if (-not $DryRun)`), or follows an
 early `if ($DryRun) { ...; return }` (`exit` and `break` count too). Anything else is reported.
 
+## What it does not prove
+
+Only the exact conditions `$DryRun`, `$WhatIfPreference` and their `-not` / `!` forms count as a guard. Any other
+condition (`-and`, `-or`, comparisons, other variables) is unknown and treated as unguarded on purpose, so the
+check fails red when unsure. `ShouldProcess` and `-WhatIf` are not recognised, and a dynamic call such as
+`& $cmd` is reported as `<dynamic>`.
+
 ## Going further
 
 SkyCraft's full gate: <https://github.com/mbiszczanik/skycraft>, `tests/DryRun-Pester-Gate.Tests.ps1`.

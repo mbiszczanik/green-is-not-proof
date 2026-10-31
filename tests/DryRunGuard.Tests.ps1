@@ -60,3 +60,31 @@ Test-AzResourceGroup -Name rg
         { Find-UnguardedMutation -Path $p } | Should -Throw 'Parse error in*'
     }
 }
+
+Describe 'Find-UnguardedMutation fails red when unsure' {
+    It 'reports <Name>' -ForEach @(
+        @{ Name = 'compound dry in then, call in else'; Body = 'if ($DryRun -and $Force) { ''skip'' } else { New-AzX }'; Cmd = 'New-AzX' }
+        @{ Name = 'compound early return'; Body = "if (`$DryRun -and `$Force) { return }`nNew-AzX"; Cmd = 'New-AzX' }
+        @{ Name = 'not-or compound'; Body = 'if (-not $DryRun -or $Force) { New-AzX }'; Cmd = 'New-AzX' }
+        @{ Name = 'not over compound'; Body = 'if (-not ($DryRun -and $Force)) { New-AzX }'; Cmd = 'New-AzX' }
+        @{ Name = 'dry and not other'; Body = 'if ($DryRun -and -not $Force) { ''x'' } else { New-AzX }'; Cmd = 'New-AzX' }
+        @{ Name = 'elseif after unknown'; Body = 'if ($DryRun -and $Force) {} elseif ($x) { New-AzX }'; Cmd = 'New-AzX' }
+        @{ Name = 'dynamic invocation'; Body = '& $cmd'; Cmd = '<dynamic>' }
+        @{ Name = 'module-qualified name'; Body = 'Az.Resources\New-AzResourceGroup -Name rg'; Cmd = 'Az.Resources\New-AzResourceGroup' }
+        @{ Name = 'Restart verb'; Body = 'Restart-AzVM -Name vm'; Cmd = 'Restart-AzVM' }
+        @{ Name = 'Invoke verb'; Body = 'Invoke-AzRestMethod -Path x'; Cmd = 'Invoke-AzRestMethod' }
+    ) {
+        $p = New-Fixture 'unsure.ps1' $Body
+        @(Find-UnguardedMutation -Path $p).Command | Should -Be $Cmd
+    }
+
+    It 'accepts parenthesised exact forms' {
+        $p = New-Fixture 'paren.ps1' "if ((`$DryRun)) { 'x' } else { New-AzX }`nif (!(`$WhatIfPreference)) { Remove-AzX }"
+        @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
+    }
+
+    It 'accepts elseif after an exact dry clause' {
+        $p = New-Fixture 'elseif.ps1' 'if ($DryRun) { ''x'' } elseif ($y) { New-AzX }'
+        @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
+    }
+}

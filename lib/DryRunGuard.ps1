@@ -1,10 +1,23 @@
 function Test-DryRunCondition {
-    # Returns 'Dry' (true means dry-run), 'NotDry' (negated), or $null when the condition ignores the switches.
+    # 'Dry' / 'NotDry' only for the exact forms; anything else is 'Unknown' (never counts as a guard).
     param([System.Management.Automation.Language.Ast]$Condition)
-    $isVar = { param($n) $n -is [System.Management.Automation.Language.VariableExpressionAst] -and $n.VariablePath.UserPath -in @('DryRun', 'WhatIfPreference') }
-    if (-not $Condition.Find($isVar, $true)) { return $null }
-    $negated = { param($n) $n -is [System.Management.Automation.Language.UnaryExpressionAst] -and $n.TokenKind -in @('Not', 'Exclaim') -and $n.Child.Find($isVar, $true) }
-    if ($Condition.Find($negated, $true)) { 'NotDry' } else { 'Dry' }
+    $names = @('DryRun', 'WhatIfPreference')
+    $unwrap = {
+        param($ast)
+        while ($true) {
+            if ($ast -is [System.Management.Automation.Language.PipelineAst] -and $ast.PipelineElements.Count -eq 1) { $ast = $ast.PipelineElements[0] }
+            elseif ($ast -is [System.Management.Automation.Language.CommandExpressionAst]) { $ast = $ast.Expression }
+            elseif ($ast -is [System.Management.Automation.Language.ParenExpressionAst]) { $ast = $ast.Pipeline }
+            else { return $ast }
+        }
+    }
+    $isVar = { param($n) $n -is [System.Management.Automation.Language.VariableExpressionAst] -and $n.VariablePath.UserPath -in $names }
+    $expr = & $unwrap $Condition
+    if (& $isVar $expr) { return 'Dry' }
+    if ($expr -is [System.Management.Automation.Language.UnaryExpressionAst] -and $expr.TokenKind -in @('Not', 'Exclaim')) {
+        if (& $isVar (& $unwrap $expr.Child)) { return 'NotDry' }
+    }
+    'Unknown'
 }
 
 function Test-CallGuarded {
@@ -14,16 +27,18 @@ function Test-CallGuarded {
         # a) call sits in the branch that runs when not dry-run
         if ($node -is [System.Management.Automation.Language.IfStatementAst]) {
             $earlierDry = $false
+            $unknownSeen = $false
             foreach ($clause in $node.Clauses) {
                 $kind = Test-DryRunCondition -Condition $clause.Item1
                 $inBody = $offset -ge $clause.Item2.Extent.StartOffset -and $offset -lt $clause.Item2.Extent.EndOffset
-                if ($inBody -and ($kind -eq 'NotDry' -or $earlierDry)) { return $true }
+                if ($inBody -and ($kind -eq 'NotDry' -or ($earlierDry -and -not $unknownSeen))) { return $true }
                 if ($kind -eq 'Dry') { $earlierDry = $true }
+                if ($kind -eq 'Unknown') { $unknownSeen = $true }
             }
             $else = $node.ElseClause
-            if ($else -and $earlierDry -and $offset -ge $else.Extent.StartOffset -and $offset -lt $else.Extent.EndOffset) { return $true }
+            if ($else -and $earlierDry -and -not $unknownSeen -and $offset -ge $else.Extent.StartOffset -and $offset -lt $else.Extent.EndOffset) { return $true }
         }
-        # b) an earlier `if ($DryRun) { ...; return|exit|break }` in this or an enclosing block
+        # b) an earlier bare `if ($DryRun) { ...; return|exit|break }` in this or an enclosing block
         if ($node -is [System.Management.Automation.Language.StatementBlockAst] -or $node -is [System.Management.Automation.Language.NamedBlockAst]) {
             foreach ($stmt in $node.Statements) {
                 if ($stmt.Extent.StartOffset -ge $offset -or $stmt -isnot [System.Management.Automation.Language.IfStatementAst]) { continue }
@@ -47,7 +62,9 @@ function Find-UnguardedMutation {
     Finds state-changing Az calls in a script that a dry-run guard does not cover. Never runs the script.
     .DESCRIPTION
     Parses the script and checks every command named <MutatingVerb>-Az*. A call is guarded when it sits in the
-    non-dry branch of an if on $DryRun or $WhatIfPreference, or follows an early `if ($DryRun) { ...; return }`.
+    non-dry branch of an if on exactly $DryRun, $WhatIfPreference or their negation, or follows an early bare
+    `if ($DryRun) { ...; return }`. Any other condition is unknown and guards nothing. Dynamic invocations
+    (`& $cmd`) are reported as <dynamic>.
     A parse error throws, so a script that cannot be read is never reported clean.
     .EXAMPLE
     Find-UnguardedMutation -Path ./Deploy.ps1
@@ -56,7 +73,12 @@ function Find-UnguardedMutation {
     [OutputType([object[]])]
     param(
         [Parameter(Mandatory)][string]$Path,
-        [string[]]$MutatingVerb = @('New', 'Set', 'Remove', 'Register', 'Update', 'Start', 'Stop', 'Add', 'Install')
+        [string[]]$MutatingVerb = @(
+            'New', 'Set', 'Remove', 'Register', 'Update', 'Start', 'Stop', 'Add', 'Install',
+            'Restart', 'Invoke', 'Grant', 'Revoke', 'Enable', 'Disable', 'Publish', 'Move', 'Import', 'Restore',
+            'Reset', 'Rename', 'Clear', 'Save', 'Submit', 'Suspend', 'Resume', 'Unregister', 'Sync', 'Backup',
+            'Mount', 'Dismount', 'Approve', 'Deny'
+        )
     )
     $tokens = $null
     $errors = $null
@@ -66,7 +88,10 @@ function Find-UnguardedMutation {
     $calls = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true)
     $hits = foreach ($call in $calls) {
         $name = $call.GetCommandName()
-        if ($name -and $name -match $pattern -and -not (Test-CallGuarded -Call $call)) {
+        # `& $cmd` / `. $cmd`: the target is unknowable, so report it
+        if (-not $name -and $call.InvocationOperator -in @('Ampersand', 'Dot')) { $name = '<dynamic>' }
+        $bare = if ($name) { $name.Substring($name.LastIndexOf('\') + 1) }
+        if ($name -and ($name -eq '<dynamic>' -or $bare -match $pattern) -and -not (Test-CallGuarded -Call $call)) {
             [pscustomobject]@{ Line = [int]$call.Extent.StartLineNumber; Command = $name }
         }
     }
