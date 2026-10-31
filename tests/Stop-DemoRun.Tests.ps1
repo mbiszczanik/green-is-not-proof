@@ -17,8 +17,9 @@ BeforeAll {
         $script:out = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $script:out
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
-        Mock Get-AzResourceGroup { [pscustomobject]@{ ResourceGroupName = 'rg-gnp-202611181805' } }
-        Mock Remove-AzResourceGroup { }
+        $script:RgGone = $false
+        Mock Get-AzResourceGroup { if ($script:RgGone) { throw 'ResourceGroupNotFound: Resource group could not be found.' }; [pscustomobject]@{ ResourceGroupName = 'rg-gnp-202611181805' } }
+        Mock Remove-AzResourceGroup { $script:RgGone = $true }
         Mock Remove-DemoDiagnosticSetting { 0 }
         Mock Get-AzResource { @() }
     }
@@ -53,7 +54,7 @@ Describe 'Invoke-StopDemoRun' {
     }
 
     It 'skips deletion when the group is gone and still runs the tag check' {
-        Mock Get-AzResourceGroup { $null }
+        $script:RgGone = $true
         $code = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
         $code | Should -Be 0
         Should -Invoke Remove-AzResourceGroup -Times 0
@@ -81,6 +82,43 @@ Describe 'Invoke-StopDemoRun' {
     It 'keeps run.json when its RunId differs' {
         @{ RunId = '202611190000' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         $null = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1
+        Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
+    }
+
+    It 'group lookup failure stops teardown' {
+        @{ RunId = '202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        Mock Get-AzResourceGroup { throw "AuthorizationFailed 403 on /subscriptions/$($script:Sub)" }
+        $out = @(Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 1
+        ($out | Out-String) | Should -Not -Match $script:Sub
+        Should -Invoke Remove-AzResourceGroup -Times 0
+        Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
+    }
+
+    It 'group still present after delete fails' {
+        Mock Remove-AzResourceGroup { }
+        $code = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
+        $code | Should -Be 1
+    }
+
+    It 'a false from Remove-AzResourceGroup fails' {
+        Mock Remove-AzResourceGroup { $false }
+        $code = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
+        $code | Should -Be 1
+    }
+
+    It 'null Az context fails before any call' {
+        Mock Get-AzContext { $null }
+        $code = Invoke-StopDemoRun -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
+        $code | Should -Be 1
+        Should -Invoke Get-AzResourceGroup -Times 0
+    }
+
+    It 'keeps run.json when the leftover check fails' {
+        @{ RunId = '202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        Mock Get-AzResource { if ($TagName) { @([pscustomobject]@{ ResourceId = '/x'; Name = 'x' }) } else { @() } }
+        $code = Invoke-StopDemoRun -OutDir $script:out 6>&1 | Select-Object -Last 1
+        $code | Should -Be 1
         Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
     }
 

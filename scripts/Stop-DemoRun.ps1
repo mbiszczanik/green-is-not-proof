@@ -21,6 +21,23 @@ $ErrorActionPreference = 'Stop'
 . $PSScriptRoot/../lib/Mask.ps1
 . $PSScriptRoot/../lib/DiagnosticSettings.ps1
 
+function Test-DemoResourceGroup {
+    <#
+    .SYNOPSIS
+    Returns $true if the resource group exists, $false only on a not-found error; any other error throws.
+    .EXAMPLE
+    Test-DemoResourceGroup -Name rg-gnp-202611181805
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)][string]$Name)
+    try { return [bool](Get-AzResourceGroup -Name $Name -ErrorAction Stop) }
+    catch {
+        if ($_.Exception.Message -match "could not be found|ResourceGroupNotFound|NotFound") { return $false }
+        throw
+    }
+}
+
 function Invoke-StopDemoRun {
     <#
     .SYNOPSIS
@@ -48,7 +65,7 @@ function Invoke-StopDemoRun {
         if ($RunId -notmatch '^\d{12}$') { throw "RunId must be 12 digits (yyyyMMddHHmm), got '$RunId'" }
         $rg = Get-DemoResourceGroupName -RunId $RunId
 
-        if (Get-AzResourceGroup -Name $rg -ErrorAction SilentlyContinue) {
+        if (Test-DemoResourceGroup -Name $rg) {
             $removed = 0
             foreach ($res in @(Get-AzResource -ResourceGroupName $rg)) {
                 $ids = @($res.ResourceId)
@@ -58,13 +75,15 @@ function Invoke-StopDemoRun {
                 foreach ($id in $ids) { $removed += Remove-DemoDiagnosticSetting -ResourceId $id -SubscriptionId $sub }
             }
             Write-Host "Removed $removed diagnostic setting(s)"
-            Remove-AzResourceGroup -Name $rg -Force | Out-Null
+            $deleted = Remove-AzResourceGroup -Name $rg -Force
+            if ($deleted -is [bool] -and -not $deleted) { throw "Remove-AzResourceGroup returned false for $rg" }
             Write-Host "Deleted resource group $rg"
         }
         else {
             Write-Host "Resource group $rg not found, skipping deletion"
         }
 
+        if (Test-DemoResourceGroup -Name $rg) { Write-Host "Resource group $rg still exists"; return 1 }
         $left = @(Get-AzResource -TagName runId -TagValue $RunId)
         if ($left.Count -gt 0) {
             Write-Host "Resources tagged runId=$RunId still exist:"

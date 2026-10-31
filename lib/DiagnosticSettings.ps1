@@ -25,7 +25,7 @@ function Remove-DemoDiagnosticSetting {
         throw
     }
     foreach ($s in $settings) {
-        Remove-AzDiagnosticSetting -ResourceId $ResourceId -Name $s.Name -ErrorAction Stop
+        Remove-AzDiagnosticSetting -ResourceId $ResourceId -Name $s.Name -ErrorAction Stop | Out-Null
     }
     $settings.Count
 }
