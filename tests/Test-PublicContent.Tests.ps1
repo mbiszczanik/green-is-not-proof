@@ -103,4 +103,88 @@ Describe 'Test-PublicContent' {
         $r.Output | Should -Match 'allow\.txt:1: e-mail'
         $r.Output | Should -Not -Match 'allow\.txt:2'
     }
+
+    It 'lists a skipped binary file by path without failing' {
+        $p = Join-Path $TestDrive 'listed.dat'
+        [IO.File]::WriteAllBytes($p, [byte[]](0, 1, 2))
+        $r = Invoke-Tool -Path $p -DenyListPath $script:NoDeny
+        $r.Code | Should -Be 0
+        $r.Output | Should -Match 'skipped binary: .*listed\.dat'
+    }
+}
+
+Describe 'Test-PublicContent -CommitRange' {
+    BeforeAll {
+        $script:Repo = Join-Path $TestDrive 'repo'
+        $null = New-Item -ItemType Directory -Path $script:Repo
+        & git -C $script:Repo init -q
+        # Plumbing builds commits without hooks or a configured identity.
+        function script:New-TestCommit([string]$Parent, [string]$Message, [hashtable]$Files) {
+            $env:GIT_AUTHOR_NAME = 'fixture'; $env:GIT_AUTHOR_EMAIL = ('fixture' + '@' + 'example.invalid')
+            $env:GIT_COMMITTER_NAME = 'fixture'; $env:GIT_COMMITTER_EMAIL = ('fixture' + '@' + 'example.invalid')
+            $idx = Join-Path $script:Repo 'fixture.idx'
+            $env:GIT_INDEX_FILE = $idx
+            try {
+                if ($Parent) { & git -C $script:Repo read-tree $Parent | Out-Null }
+                foreach ($k in $Files.Keys) {
+                    $tmp = Join-Path $TestDrive 'blob.tmp'
+                    if ($Files[$k] -is [byte[]]) { [IO.File]::WriteAllBytes($tmp, $Files[$k]) } else { [IO.File]::WriteAllText($tmp, [string]$Files[$k]) }
+                    $blob = (& git -C $script:Repo hash-object -w $tmp)
+                    & git -C $script:Repo update-index --add --cacheinfo "100644,$blob,$k" | Out-Null
+                }
+                $tree = (& git -C $script:Repo write-tree)
+                $a = @('commit-tree', $tree, '-m', $Message)
+                if ($Parent) { $a += @('-p', $Parent) }
+                (& git -C $script:Repo @a)
+            }
+            finally {
+                Remove-Item Env:GIT_INDEX_FILE, Env:GIT_AUTHOR_NAME, Env:GIT_AUTHOR_EMAIL, Env:GIT_COMMITTER_NAME, Env:GIT_COMMITTER_EMAIL -ErrorAction SilentlyContinue
+            }
+        }
+        function script:Invoke-Range([string]$Range) {
+            Push-Location $script:Repo
+            try {
+                $out = & $script:Pwsh -NoProfile -File $script:Tool -CommitRange $Range -DenyListPath $script:NoDeny 2>&1 | Out-String
+                [pscustomobject]@{ Code = $LASTEXITCODE; Output = $out }
+            }
+            finally { Pop-Location }
+        }
+        $script:Base = New-TestCommit '' 'base' @{ 'a.txt' = 'clean' }
+    }
+
+    It 'fails on an e-mail address in a commit message' {
+        $c = New-TestCommit $script:Base "work by $script:Mail" @{ 'b.txt' = 'clean' }
+        $r = Invoke-Range "$($script:Base)..$c"
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match ('commit {0}: e-mail' -f $c.Substring(0, 7))
+    }
+
+    It 'fails on a GUID added in a commit even if a later commit removes it' {
+        $c1 = New-TestCommit $script:Base 'add' @{ 'g.txt' = "id $script:Guid" }
+        $c2 = New-TestCommit $c1 'remove' @{ 'g.txt' = 'gone' }
+        $r = Invoke-Range "$($script:Base)..$c2"
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match ('commit {0}: guid' -f $c1.Substring(0, 7))
+    }
+
+    It 'is clean for a clean range' {
+        $c = New-TestCommit $script:Base 'tidy change' @{ 'c.txt' = 'clean text' }
+        $r = Invoke-Range "$($script:Base)..$c"
+        $r.Code | Should -Be 0
+        $r.Output | Should -Match 'public-content: clean'
+    }
+
+    It 'lists a binary blob in the range as skipped' {
+        $c = New-TestCommit $script:Base 'binary' @{ 'pic.bin' = [byte[]](0, 1, 2, 3) }
+        $r = Invoke-Range "$($script:Base)..$c"
+        $r.Code | Should -Be 0
+        $r.Output | Should -Match 'skipped binary: pic\.bin'
+    }
+
+    It 'accepts a range with extra arguments such as --not --remotes' {
+        $c = New-TestCommit $script:Base "again $script:Mail" @{ 'd.txt' = 'clean' }
+        $r = Invoke-Range "$c --not --remotes"
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'e-mail'
+    }
 }

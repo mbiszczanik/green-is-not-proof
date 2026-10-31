@@ -8,6 +8,8 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install modules
         run: |
           Install-Module Pester -MinimumVersion 5.5 -MaximumVersion 5.99 -Force -Scope CurrentUser
@@ -29,4 +31,9 @@ jobs:
       - name: Public content
         run: |
           ./tools/Test-PublicContent.ps1 -Path (git ls-files)
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+      - name: Public content in pull request commits
+        if: github.event_name == 'pull_request'
+        run: |
+          ./tools/Test-PublicContent.ps1 -CommitRange "origin/${{ github.base_ref }}..HEAD"
           if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
