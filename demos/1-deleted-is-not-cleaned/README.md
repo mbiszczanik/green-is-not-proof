@@ -18,7 +18,7 @@ Each step prints one masked line.
 | --- | --- | --- |
 | 1 | `./Show-DiagnosticSettingLeftover.ps1 -Step Show` | `Storage <name> has diagnostic setting(s): diag-to-log` |
 | 2 | `-Step Delete` | `Deleted storage account <name>: OK` (the green) |
-| 3 | `-Step Recreate` | `Recreated storage account <name>` (same name, region, SKU, tags) |
+| 3 | `-Step Recreate` | `Recreated storage account <name>` (same name, region, SKU, tags); retries every 5 s for up to 60 s if Azure still holds the name |
 | 4 | `-Step List` | `Diagnostic settings on the NEW account: <names>` |
 | 5 | `-Step Clean` | `Removed <n> diagnostic setting(s)` |
 

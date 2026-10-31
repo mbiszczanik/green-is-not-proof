@@ -26,8 +26,8 @@ BeforeAll {
         Mock Remove-AzStorageAccount { }
         Mock New-AzStorageAccount { [pscustomobject]@{ Id = 'x' } }
     }
-    function script:Step([string]$Name) {
-        $res = Invoke-DiagnosticSettingLeftover -Step $Name -OutDir $script:out 6>&1
+    function script:Step([string]$Name, [string]$RunId) {
+        $res = Invoke-DiagnosticSettingLeftover -Step $Name -RunId $RunId -OutDir $script:out -RetryDelaySeconds 0 6>&1
         [pscustomobject]@{ Code = ($res | Where-Object { $_ -is [int] }); Text = ($res | Where-Object { $_ -isnot [int] } | Out-String).Trim() }
     }
 }
@@ -97,5 +97,48 @@ Describe 'Invoke-DiagnosticSettingLeftover' {
     It 'fails when there is no run id and no run.json' {
         Remove-Item (Join-Path $script:out 'run.json')
         (Step Show).Code | Should -Be 1
+    }
+
+    It 'recreate retries while the name is held' {
+        $script:n = 0
+        Mock New-AzStorageAccount { $script:n++; if ($script:n -le 2) { throw 'StorageAccountAlreadyTaken: name in use' } }
+        $r = Step Recreate
+        $r.Code | Should -Be 0
+        $script:n | Should -Be 3
+        ([regex]::Matches($r.Text, 'Name still held by Azure, retrying')).Count | Should -Be 1
+        $r.Text | Should -Match 'Recreated storage account'
+    }
+
+    It 'recreate gives up after the limit' {
+        Mock New-AzStorageAccount { throw 'StorageAccountAlreadyTaken' }
+        $r = Step Recreate
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'still held by Azure'
+    }
+
+    It 'recreate does not retry other errors' {
+        Mock New-AzStorageAccount { throw 'quota exceeded' }
+        (Step Recreate).Code | Should -Be 1
+        Should -Invoke New-AzStorageAccount -Times 1 -Exactly
+    }
+
+    It 'recreate fails when run.json has no Location' {
+        @{ RunId = '202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        $r = Step Recreate
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'no Location'
+        Should -Invoke New-AzStorageAccount -Times 0 -Exactly
+    }
+
+    It 'Show prints none when there are no settings' {
+        $script:Settings = @()
+        (Step Show).Text | Should -Be 'Storage stgnp202611181805 has diagnostic setting(s): none'
+    }
+
+    It 'fails when -RunId differs from run.json' {
+        $r = Step Recreate '202611190000'
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'not 202611190000'
+        Should -Invoke New-AzStorageAccount -Times 0 -Exactly
     }
 }

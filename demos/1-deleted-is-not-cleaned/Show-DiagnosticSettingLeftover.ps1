@@ -33,7 +33,8 @@ function Invoke-DiagnosticSettingLeftover {
     param(
         [Parameter(Mandatory)][ValidateSet('Show', 'Delete', 'Recreate', 'List', 'Clean')][string]$Step,
         [string]$RunId,
-        [Parameter(Mandatory)][string]$OutDir
+        [Parameter(Mandatory)][string]$OutDir,
+        [int]$RetryDelaySeconds = 5
     )
     $sub = ''
     try {
@@ -48,12 +49,13 @@ function Invoke-DiagnosticSettingLeftover {
         if ($RunId -notmatch '^\d{12}$') { throw "RunId must be 12 digits (yyyyMMddHHmm), got '$RunId'" }
         $rg = Get-DemoResourceGroupName -RunId $RunId
         $name = "stgnp$RunId"
-        $location = if ($run -and $run.PSObject.Properties['Location']) { $run.Location } else { 'swedencentral' }
+        if ($run -and $run.RunId -ne $RunId) { throw "run.json holds run $($run.RunId), not $RunId" }
         $blobId = "/subscriptions/$sub/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$name/blobServices/default"
 
         $line = switch ($Step) {
             'Show' {
                 $names = @(Get-AzDiagnosticSetting -ResourceId $blobId | ForEach-Object Name) -join ', '
+                if (-not $names) { $names = 'none' }
                 "Storage $name has diagnostic setting(s): $names"
             }
             'Delete' {
@@ -61,7 +63,23 @@ function Invoke-DiagnosticSettingLeftover {
                 "Deleted storage account ${name}: OK"
             }
             'Recreate' {
-                $null = New-AzStorageAccount -ResourceGroupName $rg -Name $name -Location $location -SkuName Standard_LRS -Kind StorageV2 -Tag (Get-DemoTag -RunId $RunId)
+                if (-not ($run -and $run.PSObject.Properties['Location'] -and $run.Location)) { throw 'run.json has no Location for this run' }
+                $tag = Get-DemoTag -RunId $RunId
+                # Azure can hold a deleted account's name for a short while.
+                $maxRetries = 12
+                $told = $false
+                for ($i = 0; ; $i++) {
+                    try {
+                        $null = New-AzStorageAccount -ResourceGroupName $rg -Name $name -Location $run.Location -SkuName Standard_LRS -Kind StorageV2 -Tag $tag
+                        break
+                    }
+                    catch {
+                        if ($_.Exception.Message -notmatch 'StorageAccountAlreadyTaken|AlreadyExists|already taken|in use') { throw }
+                        if ($i -ge $maxRetries) { throw "name $name still held by Azure after $($maxRetries * $RetryDelaySeconds) s, try again shortly" }
+                        if (-not $told) { Write-Host 'Name still held by Azure, retrying...'; $told = $true }
+                        Start-Sleep -Seconds $RetryDelaySeconds
+                    }
+                }
                 "Recreated storage account $name"
             }
             'List' {
