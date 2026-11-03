@@ -13,7 +13,7 @@ jobs:
       - name: Install modules
         run: |
           Install-Module Pester -MinimumVersion 5.5 -MaximumVersion 5.99 -Force -Scope CurrentUser
-          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
       - name: Pester
         run: |
           $r = Invoke-Pester -Path ./tests -PassThru
@@ -22,6 +22,7 @@ jobs:
           }
       - name: PSScriptAnalyzer
         run: |
+          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
           $f = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 |
             Where-Object { $_.Severity -in 'Warning', 'Error' }
           if ($f) {
@@ -35,12 +36,43 @@ jobs:
           $code = $LASTEXITCODE
           Write-Host $out
           if ($code -ne 0 -or $out -cmatch ': (Warning|Error) ') { $Host.SetShouldExit(1); exit 1 }
+      - name: Markdown lint
+        env:
+          MARKDOWNLINT_CLI2_VERSION: 0.18.1
+        run: |
+          # Package and version joined at run time: "name@version" reads as an e-mail address to the public-content check.
+          npx --yes ('markdownlint-cli2' + [char]64 + $env:MARKDOWNLINT_CLI2_VERSION) "**/*.md"
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+      - name: Deny list
+        env:
+          GNP_DENY_LIST: ${{ secrets.GNP_DENY_LIST }}
+        run: |
+          if ($env:GNP_DENY_LIST) {
+            $f = Join-Path $env:RUNNER_TEMP 'gnp-deny.txt'
+            Set-Content -LiteralPath $f -Value $env:GNP_DENY_LIST
+            "GNP_DENY_PATH=$f" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
       - name: Public content
         run: |
-          ./tools/Test-PublicContent.ps1 -Path (git ls-files)
+          $deny = if ($env:GNP_DENY_PATH) { $env:GNP_DENY_PATH } else { Join-Path $env:RUNNER_TEMP 'no-deny.txt' }
+          ./tools/Test-PublicContent.ps1 -Path (git ls-files) -DenyListPath $deny
           if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
       - name: Public content in pull request commits
         if: github.event_name == 'pull_request'
         run: |
-          ./tools/Test-PublicContent.ps1 -CommitRange "origin/${{ github.base_ref }}..HEAD"
+          $deny = if ($env:GNP_DENY_PATH) { $env:GNP_DENY_PATH } else { Join-Path $env:RUNNER_TEMP 'no-deny.txt' }
+          ./tools/Test-PublicContent.ps1 -CommitRange "origin/${{ github.base_ref }}..HEAD" -DenyListPath $deny
           if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+      - name: Deny list was checked
+        if: always()
+        env:
+          FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          # Runs last so a missing list never hides other results; fork pull requests get no secrets.
+          if ($env:GNP_DENY_PATH) { Write-Host 'Deny list checked.'; exit 0 }
+          if ($env:FORK_PR -eq 'true') {
+            Write-Host '::notice::Deny list not checked: secrets are not available to fork pull requests. E-mails and GUIDs were still checked.'
+            exit 0
+          }
+          Write-Host '::error::Repository secret GNP_DENY_LIST is missing, so tenant and organisation names were not checked.'
+          $Host.SetShouldExit(1); exit 1

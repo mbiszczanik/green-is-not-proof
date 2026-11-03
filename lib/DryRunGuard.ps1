@@ -63,7 +63,8 @@ function Find-UnguardedMutation {
     .SYNOPSIS
     Finds state-changing Az calls in a script that a dry-run guard does not cover. Never runs the script.
     .DESCRIPTION
-    Parses the script and checks every command named <MutatingVerb>-Az*. A call is guarded when it sits in the
+    Parses the script and checks every command named <Verb>-Az* whose verb is not on the read-only allow list, so an
+    unlisted verb counts as mutating (fail closed). A call is guarded when it sits in the
     non-dry branch of an if on exactly $DryRun, $WhatIfPreference or their negation, or follows an early bare
     `if ($DryRun) { ...; return }`. Any other condition is unknown and guards nothing. Dynamic invocations
     (`& $cmd`) are reported as <dynamic>.
@@ -75,25 +76,21 @@ function Find-UnguardedMutation {
     [OutputType([object[]])]
     param(
         [Parameter(Mandatory)][string]$Path,
-        [string[]]$MutatingVerb = @(
-            'New', 'Set', 'Remove', 'Register', 'Update', 'Start', 'Stop', 'Add', 'Install',
-            'Restart', 'Invoke', 'Grant', 'Revoke', 'Enable', 'Disable', 'Publish', 'Move', 'Import', 'Restore',
-            'Reset', 'Rename', 'Clear', 'Save', 'Submit', 'Suspend', 'Resume', 'Unregister', 'Sync', 'Backup',
-            'Mount', 'Dismount', 'Approve', 'Deny'
-        )
+        [string[]]$ReadOnlyVerb = @('Get', 'Test', 'Find', 'Search', 'Resolve', 'Measure', 'Show', 'Select', 'Compare', 'Wait')
     )
     $tokens = $null
     $errors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref]$tokens, [ref]$errors)
     if ($errors -and $errors.Count -gt 0) { throw "Parse error in ${Path}: $($errors[0].Message)" }
-    $pattern = '^(' + (($MutatingVerb | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')-Az'
+    $readOnly = [System.Collections.Generic.HashSet[string]]::new([string[]]$ReadOnlyVerb, [StringComparer]::OrdinalIgnoreCase)
     $calls = $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.CommandAst] }, $true)
     $hits = foreach ($call in $calls) {
         $name = $call.GetCommandName()
         # `& $cmd` / `. $cmd`: the target is unknowable, so report it
         if (-not $name -and $call.InvocationOperator -in @('Ampersand', 'Dot')) { $name = '<dynamic>' }
         $bare = if ($name) { $name.Substring($name.LastIndexOf('\') + 1) }
-        if ($name -and ($name -eq '<dynamic>' -or $bare -match $pattern) -and -not (Test-CallGuarded -Call $call)) {
+        $mutating = $name -eq '<dynamic>' -or ($bare -match '^([A-Za-z]+)-Az' -and -not $readOnly.Contains($Matches[1]))
+        if ($mutating -and -not (Test-CallGuarded -Call $call)) {
             [pscustomobject]@{ Line = [int]$call.Extent.StartLineNumber; Command = $name }
         }
     }

@@ -118,6 +118,20 @@ Describe 'Invoke-StopDemoRun' {
         Test-Path (Join-Path $script:out 'run.json') | Should -BeFalse
     }
 
+    It 'deletes the generated SSH key pair after a clean teardown' {
+        foreach ($k in 'demo_key', 'demo_key.pub') { Set-Content (Join-Path $script:out $k) 'k' }
+        (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1) | Should -Be 0
+        Test-Path (Join-Path $script:out 'demo_key') | Should -BeFalse
+        Test-Path (Join-Path $script:out 'demo_key.pub') | Should -BeFalse
+    }
+
+    It 'keeps the SSH key pair when teardown fails' {
+        foreach ($k in 'demo_key', 'demo_key.pub') { Set-Content (Join-Path $script:out $k) 'k' }
+        Mock Remove-AzResourceGroup { }
+        (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1) | Should -Be 1
+        Test-Path (Join-Path $script:out 'demo_key') | Should -BeTrue
+    }
+
     It 'keeps run.json when its RunId differs' {
         @{ RunId = '202611190000' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         $null = Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1

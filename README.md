@@ -1,8 +1,22 @@
 # green-is-not-proof
 
-Live Azure demos and a cheat sheet for the talk "Green is not proof": a green check in Azure is a
-declaration, not evidence. The talk is delivered in Polish at meetups and a university lecture in
-November and December 2026. This repository holds the demo kit and the English cheat sheet.
+A green check in Azure is a declaration, not evidence.
+
+Here you get runnable PowerShell demos that show a check passing while the thing it checks is broken, the
+independent read that catches each one, and a one-page [cheat sheet](docs/cheat-sheet.md).
+
+## Talk
+
+- Title: "Green is not proof" (Polish subtitle: "Pułapki weryfikacji w Azure i jak je wyłapać")
+- Language: Polish, with everyday English industry terms
+- Audiences: community meetups of engineers and developers; a university guest lecture for engineering students
+- Write-up: TODO(author): link to the blog article
+
+The repository applies the talk to itself: [docs/self-audit.md](docs/self-audit.md) lists the checks in this
+repository that were declarations, and what the independent evidence showed.
+
+Author: Marcin Biszczanik, Cloud and Platform Consultant. [mbiszczanik.dev](https://mbiszczanik.dev) ·
+[GitHub](https://github.com/mbiszczanik)
 
 ## The question and the four rules
 
@@ -42,7 +56,8 @@ One-time local setup, once per clone and machine:
    line of `~/.config/green-is-not-proof/subscription.txt`. Setup, demos and teardown refuse to run when
    the current Azure subscription is a different one (`Set-AzContext` first).
 2. Create `~/.config/green-is-not-proof/deny.txt` with the tenant and organisation names that must never appear in
-   the repository, one per line. The public-content check reads it; the file is never committed.
+   the repository, one per line. The public-content check reads it; the file is never committed. CI reads the same
+   list from the repository secret `GNP_DENY_LIST` (see Tests and CI).
 3. Enable the pre-push check: `git config core.hooksPath .githooks`.
 
 Then, from the repository root:
@@ -95,6 +110,7 @@ created, and refuses to continue above the per-run limit of 2 EUR. Its live esti
 | OS disk E4 | 0.01 |
 | Storage | 0.00 |
 | Log Analytics, 0.1 GB | 0.27 |
+| VM auto-shutdown schedule | no charge |
 | Total | 0.29376 |
 
 Standard_B1s had a capacity restriction in `swedencentral` and `northeurope` on 2026-11-03, and
@@ -103,14 +119,23 @@ Standard_B1s had a capacity restriction in `swedencentral` and `northeurope` on 
 
 The Log Analytics figure ignores the free 5 GB tier on purpose (conservative). Prices change; the guard reads them again on every run.
 
+The guard protects the start, not a forgotten teardown. `New-RogueResource.ps1` gives the VM an auto-shutdown
+schedule 3 hours ahead (UTC), which stops the compute charge; the disk, storage and workspace keep billing until
+teardown. For a hard ceiling, set a budget alert on the test subscription once.
+
 ## Tests and CI
 
 ```powershell
 Invoke-Pester ./tests -Output Detailed
 ```
 
-CI runs `./tests`, PSScriptAnalyzer and the public-content check. The suites under `demos/` are excluded on
-purpose: the on-stage suites of demos 2 and 3 are shown live, and demo 2 is meant to fail red.
+CI runs `./tests`, PSScriptAnalyzer (pinned), the Bicep linter (failing on warnings), markdownlint-cli2 (pinned) and
+the public-content check. The suites under `demos/` are excluded on purpose: the on-stage suites of demos 2 and 3
+are shown live, and demo 2 is meant to fail red.
+
+The public-content check in CI needs the repository secret `GNP_DENY_LIST`: the tenant and organisation names, one
+per line, as in the local `deny.txt`. Without it, CI fails on pushes and same-repository pull requests; on a pull
+request from a fork, which gets no secrets, it prints that the deny list was not checked.
 
 The pre-push hook (`git config core.hooksPath .githooks`) checks the working tree and every commit being pushed; CI checks pull request commits too.
 

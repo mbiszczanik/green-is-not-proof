@@ -10,8 +10,9 @@ Prerequisites:
 
 1. `./scripts/Start-DemoRun.ps1` has run. It deploys `infra/declared.bicep` as one deployment named
    `declared-<runId>` and writes `out/run.json`.
-2. `./scripts/New-RogueResource.ps1` has run. It creates the VM `vm-traffic` and its NIC with the run's tags copied
-   on, outside that deployment, the way a resource made by hand or by another pipeline would appear.
+2. `./scripts/New-RogueResource.ps1` has run. It creates the VM `vm-traffic`, its NIC and its auto-shutdown schedule
+   with the run's tags copied on, outside that deployment, the way a resource made by hand or by another pipeline
+   would appear.
 
 Run demo 0 before demo 1: demo 1 recreates the storage account outside the deployment, and the audit would then
 flag it too.
@@ -33,7 +34,7 @@ flag it too.
    vm-traffic                 Microsoft.Compute/virtualMachines
    ...
 
-   All 6 resources carry project tags: OK
+   All 7 resources carry project tags: OK
    ```
 
 2. Run the ownership audit. It lists the whole resource group, tagged or not, and compares each resource id with
@@ -52,6 +53,7 @@ flag it too.
    vm-traffic                   Microsoft.Compute/virtualMachines /subscriptions/<sub>/resourceGroups/rg-gnp-.../vm-traffic
    vm-traffic-nic               Microsoft.Network/networkInterfaces ...
    vm-traffic_OsDisk_1_<hex>    Microsoft.Compute/disks          ...
+   shutdown-computevm-vm-traffic Microsoft.DevTestLab/schedules  ...
    ```
 
    If the deployment record is missing or did not succeed, the audit exits 1 and names the record instead of

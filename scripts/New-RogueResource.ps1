@@ -6,6 +6,7 @@ Run after scripts/Start-DemoRun.ps1, whose cost guard already priced this VM. Cr
 (Standard_B2ts_v2, Ubuntu 22.04, no public IP, boot diagnostics off, SSH key generated into out/) and its NIC in
 the run's subnet, with the run's canonical tags copied on, so a tag audit counts it as the project's own. Nothing
 here is part of infra/declared.bicep, so its deployment record does not list it. Needs out/run.json of the run.
+The VM gets a free auto-shutdown schedule 3 hours ahead (UTC), so a forgotten teardown stops paying for compute.
 .EXAMPLE
 ./scripts/New-RogueResource.ps1
 #>
@@ -45,7 +46,7 @@ function Invoke-NewRogueResource {
     #>
     [CmdletBinding()]
     [OutputType([int])]
-    param([Parameter(Mandatory)][string]$OutDir)
+    param([Parameter(Mandatory)][string]$OutDir, [datetime]$Now = (Get-Date))
     $sub = ''
     try {
         $ctx = Get-AzContext
@@ -74,10 +75,24 @@ function Invoke-NewRogueResource {
         $vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
         $vm = Set-AzVMOSDisk -VM $vm -CreateOption FromImage -StorageAccountType StandardSSD_LRS
         $null = New-AzVM -ResourceGroupName $rg -Location $run.Location -VM $vm -Tag $tag
-
         $run | Add-Member -NotePropertyName RogueVmName -NotePropertyValue $vmName -Force
         $run | ConvertTo-Json | Set-Content -Path (Join-Path $OutDir 'run.json') -Encoding utf8
-        Write-Host "Created $vmName in $rg outside the declared deployment, with the run's tags"
+
+        $shutdown = $Now.ToUniversalTime().AddHours(3).ToString('HHmm')
+        $vmId = "/subscriptions/$sub/resourceGroups/$rg/providers/Microsoft.Compute/virtualMachines/$vmName"
+        $schedule = @{
+            status               = 'Enabled'
+            taskType             = 'ComputeVmShutdownTask'
+            dailyRecurrence      = @{ time = $shutdown }
+            timeZoneId           = 'UTC'
+            targetResourceId     = $vmId
+            notificationSettings = @{ status = 'Disabled' }
+        }
+        try {
+            $null = New-AzResource -ResourceId "/subscriptions/$sub/resourceGroups/$rg/providers/Microsoft.DevTestLab/schedules/shutdown-computevm-$vmName" -Location $run.Location -Properties $schedule -Tag $tag -Force
+        }
+        catch { throw "$vmName was created but its auto-shutdown schedule was not: $($_.Exception.Message). Tear the run down when done." }
+        Write-Host "Created $vmName in $rg outside the declared deployment, with the run's tags; auto-shutdown at $shutdown UTC"
         return 0
     }
     catch {

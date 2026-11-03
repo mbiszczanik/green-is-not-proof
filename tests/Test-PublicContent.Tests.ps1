@@ -215,3 +215,20 @@ Describe 'Test-PublicContent -CommitRange' {
         $r.Output | Should -Match 'e-mail'
     }
 }
+
+Describe 'Test-PublicContent line endings' {
+    It 'works from a <Name> copy of itself, line numbers included' -ForEach @(
+        @{ Name = 'LF-only'; Eol = "`n" }
+        @{ Name = 'CRLF'; Eol = "`r`n" }
+    ) {
+        # Strip every CR first: a lone CR inside a pattern is what an LF-only normalisation destroys.
+        $text = ((Get-Content -LiteralPath $script:Tool -Raw) -replace "`r", '') -replace "`n", $Eol
+        $copy = Join-Path $TestDrive "tool-$Name.ps1"
+        [System.IO.File]::WriteAllText($copy, $text)
+        $f = Join-Path $TestDrive "two-lines-$Name.txt"
+        [System.IO.File]::WriteAllText($f, "clean line${Eol}contact $script:Mail now$Eol")
+        $out = & $script:Pwsh -NoProfile -File $copy -Path $f -DenyListPath $script:NoDeny 2>&1 | Out-String
+        $LASTEXITCODE | Should -Be 1
+        $out | Should -Match "two-lines-$Name\.txt:2: e-mail"
+    }
+}

@@ -70,8 +70,7 @@ function ConvertFrom-ScanByteArray([byte[]]$bytes) {
 # Returns one object per hit: Line and Kind.
 function Find-Hit([string]$Text) {
     $lineNo = 0
-    foreach ($line in $Text -split '?
-') {
+    foreach ($line in $Text -split '\r?\n') {
         $lineNo++
         foreach ($m in $emailRx.Matches($line)) {
             # RFC 2606 reserved domains are fictional by definition.
