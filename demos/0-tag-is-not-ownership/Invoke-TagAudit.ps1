@@ -2,7 +2,7 @@
 .SYNOPSIS
 Demo 0, the green: lists resources carrying the project tags and reports OK.
 .DESCRIPTION
-Looks only at tags, never at the code's manifest. The rogue VM carries the tags, so the audit passes.
+Looks only at tags, never at the deployment record. The rogue VM carries the tags, so the audit passes.
 RunId comes from -RunId or out/run.json.
 .EXAMPLE
 ./demos/0-tag-is-not-ownership/Invoke-TagAudit.ps1

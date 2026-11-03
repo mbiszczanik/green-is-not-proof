@@ -1,34 +1,50 @@
 function Find-UnownedResource {
     <#
     .SYNOPSIS
-    Returns inventory items whose name the code does not declare, plus the children of a flagged VM.
+    Returns inventory items whose resource id the deployment record does not list.
     .DESCRIPTION
-    Names match case-insensitively. A child of a flagged VM has a name starting with the VM name and
-    '-' or '_' (NIC, Azure-named OS disk), or a ManagedBy property ending with the VM id.
+    Ids match case-insensitively. An inventory item's id is read from Id, else ResourceId.
     .EXAMPLE
-    Find-UnownedResource -Inventory (Get-AzResource -ResourceGroupName $rg) -ExpectedName $names
+    Find-UnownedResource -Inventory (Get-AzResource -ResourceGroupName $rg) -ExpectedId $ids
     #>
     [CmdletBinding()]
     [OutputType([object[]])]
     param(
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Inventory,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$ExpectedName
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$ExpectedId
     )
     if (-not $Inventory -or $Inventory.Count -eq 0) { throw 'Empty inventory' }
-    $expected = [System.Collections.Generic.HashSet[string]]::new([string[]]$ExpectedName, [StringComparer]::OrdinalIgnoreCase)
-    $flagged = @($Inventory | Where-Object { -not $expected.Contains([string]$_.Name) })
-    $vms = @($flagged | Where-Object { $_.ResourceType -eq 'Microsoft.Compute/virtualMachines' })
-    $children = foreach ($item in $Inventory) {
-        foreach ($vm in $vms) {
-            $managedBy = if ($item.PSObject.Properties['ManagedBy']) { [string]$item.ManagedBy } else { '' }
-            $prefix = [string]$vm.Name
-            if ($item.Name.StartsWith("$prefix-", [StringComparison]::OrdinalIgnoreCase) -or
-                $item.Name.StartsWith("${prefix}_", [StringComparison]::OrdinalIgnoreCase) -or
-                ($managedBy -and $managedBy.EndsWith([string]$vm.Id, [StringComparison]::OrdinalIgnoreCase))) { $item; break }
-        }
-    }
-    @($flagged) + @($children) | Sort-Object -Property Id -Unique |
-        Select-Object -Property Name, ResourceType, Id
+    $expected = [System.Collections.Generic.HashSet[string]]::new([string[]]$ExpectedId, [StringComparer]::OrdinalIgnoreCase)
+    @($Inventory | ForEach-Object {
+            $id = if ($_.PSObject.Properties['Id'] -and $_.Id) { [string]$_.Id } else { [string]$_.ResourceId }
+            if (-not $expected.Contains($id)) { [pscustomobject]@{ Name = $_.Name; ResourceType = $_.ResourceType; Id = $id } }
+        }) | Sort-Object -Property Id -Unique
+}
+
+function Get-DeclaredResourceId {
+    <#
+    .SYNOPSIS
+    Returns the resource ids a succeeded deployment created, read from its deployment operations.
+    .DESCRIPTION
+    Throws when the deployment record is missing, not Succeeded, or lists no resources, so a missing record
+    never reads as "nothing declared" or "everything declared".
+    .EXAMPLE
+    Get-DeclaredResourceId -ResourceGroupName rg-gnp-202611181805 -DeploymentName declared-202611181805
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [Parameter(Mandatory)][string]$ResourceGroupName,
+        [Parameter(Mandatory)][string]$DeploymentName
+    )
+    try { $dep = Get-AzResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Name $DeploymentName -ErrorAction Stop }
+    catch { throw "Deployment record $DeploymentName not readable in ${ResourceGroupName}: $($_.Exception.Message)" }
+    if (-not $dep) { throw "Deployment record $DeploymentName not found in $ResourceGroupName" }
+    if ($dep.ProvisioningState -ne 'Succeeded') { throw "Deployment record $DeploymentName is $($dep.ProvisioningState), not Succeeded" }
+    $ids = @(Get-AzResourceGroupDeploymentOperation -ResourceGroupName $ResourceGroupName -DeploymentName $DeploymentName -ErrorAction Stop |
+            ForEach-Object { [string]$_.TargetResource } | Where-Object { $_ } | Sort-Object -Unique)
+    if ($ids.Count -eq 0) { throw "Deployment record $DeploymentName lists no resources" }
+    $ids
 }
 
 function Resolve-AuditRunId {

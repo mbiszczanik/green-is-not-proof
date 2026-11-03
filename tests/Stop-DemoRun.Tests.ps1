@@ -21,6 +21,7 @@ BeforeAll {
         Mock Get-DemoExpectedSubscriptionId { $script:Sub }
         Mock Remove-AzResourceGroup { $script:RgGone = $true }
         Mock Remove-DemoDiagnosticSetting { 0 }
+        Mock Get-DemoDiagnosticSettingName { @() }
         Mock Get-AzResource { @() }
     }
 }
@@ -45,6 +46,42 @@ Describe 'Invoke-StopDemoRun' {
         foreach ($s in 'blob', 'file', 'queue', 'table') {
             Should -Invoke Remove-DemoDiagnosticSetting -Times 1 -ParameterFilter { $ResourceId -eq "$id/${s}Services/default" }
         }
+    }
+
+    It 'a setting still listed after removal fails before deleting the group' {
+        $id = "/subscriptions/$($script:Sub)/resourceGroups/rg-gnp-202611181805/providers/Microsoft.Storage/storageAccounts/stgnp202611181805"
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        Mock Remove-DemoDiagnosticSetting { 1 }
+        Mock Get-DemoDiagnosticSettingName { if ($ResourceId -like '*/blobServices/default') { 'diag-to-log' } }
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 1
+        $text = ($out | Out-String)
+        $text | Should -Match 'still listed after removal'
+        $text | Should -Match 'diag-to-log'
+        $text | Should -Not -Match $script:Sub
+        Should -Invoke Remove-AzResourceGroup -Times 0
+    }
+
+    It 'reads every resource and storage sub-service back after removal' {
+        $id = "/subscriptions/$($script:Sub)/resourceGroups/rg-gnp-202611181805/providers/Microsoft.Storage/storageAccounts/stgnp202611181805"
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 0
+        Should -Invoke Get-DemoDiagnosticSettingName -Times 5 -Exactly
+        ($out | Out-String) | Should -Match 'Listed again: no diagnostic settings remain on 5 resource'
+    }
+
+    It 'a failed read-back fails before deleting the group' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ ResourceId = '/r'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
+        Mock Get-DemoDiagnosticSettingName { throw 'Forbidden' }
+        (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1) | Should -Be 1
+        Should -Invoke Remove-AzResourceGroup -Times 0
+    }
+
+    It 'the final message says what was checked and what was not' {
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 0
+        ($out | Out-String) | Should -Match 'Resource group rg-gnp-202611181805 gone; no resources tagged runId=202611181805 in the subscription\. Not covered: untagged resources outside the group\.'
     }
 
     It 'list failure throws and leaves resource' {

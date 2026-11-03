@@ -1,10 +1,12 @@
 <#
 .SYNOPSIS
-Tears down one demo run and proves nothing tagged with its run id remains.
+Tears down one demo run and reports exactly what it checked afterwards.
 .DESCRIPTION
-Removes diagnostic settings on every resource in the run's group (and on the four storage sub-services),
-deletes the group, then queries resources tagged runId=<id> (up to 6 times, 10 s apart) and exits 1 if any remain. A diagnostic
-setting is a separate resource that deleting the group may not cascade to. The run id comes from -RunId
+Removes diagnostic settings on every resource in the run's group (and on the four storage sub-services), lists
+them again and stops with exit 1 if any are still listed (the remove call's success is not trusted). A diagnostic
+setting is a separate resource that deleting the group may not cascade to. Then deletes the group, checks that it
+is gone and queries resources tagged runId=<id> (up to 6 times, 10 s apart), exiting 1 if any remain. Not covered:
+untagged resources outside the group, such as the shared NetworkWatcherRG. The run id comes from -RunId
 or out/run.json; run.json is removed only after a clean teardown of the same run. The current subscription must
 equal the one in run.json (or the configured demo subscription when only -RunId is given). If the run's storage
 account is missing from the group, it stops before deleting anything: demo 1's diagnostic setting may survive.
@@ -63,14 +65,22 @@ function Invoke-StopDemoRun {
                 }
             }
             $removed = 0
-            foreach ($res in $inventory) {
-                $ids = @($res.ResourceId)
+            $ids = foreach ($res in $inventory) {
+                $res.ResourceId
                 if ($res.ResourceType -eq 'Microsoft.Storage/storageAccounts') {
-                    $ids += 'blob', 'file', 'queue', 'table' | ForEach-Object { "$($res.ResourceId)/${_}Services/default" }
+                    'blob', 'file', 'queue', 'table' | ForEach-Object { "$($res.ResourceId)/${_}Services/default" }
                 }
-                foreach ($id in $ids) { $removed += Remove-DemoDiagnosticSetting -ResourceId $id -SubscriptionId $sub }
             }
+            foreach ($id in $ids) { $removed += Remove-DemoDiagnosticSetting -ResourceId $id -SubscriptionId $sub }
             Write-Host "Removed $removed diagnostic setting(s)"
+            # Read back: a remove call that returns is a declaration, the listing afterwards is the evidence.
+            $still = @(foreach ($id in $ids) { Get-DemoDiagnosticSettingName -ResourceId $id | ForEach-Object { "$id -> $_" } })
+            if ($still.Count -gt 0) {
+                Write-Host 'Diagnostic settings still listed after removal; the resource group was not deleted:'
+                Write-Host (ConvertTo-SafeText -Text ($still -join "`n") -SubscriptionId $sub)
+                return 1
+            }
+            Write-Host "Listed again: no diagnostic settings remain on $(@($ids).Count) resource(s) and sub-service(s)"
             $deleted = Remove-AzResourceGroup -Name $rg -Force
             if ($deleted -is [bool] -and -not $deleted) { throw "Remove-AzResourceGroup returned false for $rg" }
             Write-Host "Deleted resource group $rg"
@@ -91,7 +101,7 @@ function Invoke-StopDemoRun {
             Write-Host (($left | Select-Object ResourceId, Name | Write-DemoOutput -SubscriptionId $sub))
             return 1
         }
-        Write-Host "Nothing tagged runId=$RunId remains"
+        Write-Host "Resource group $rg gone; no resources tagged runId=$RunId in the subscription. Not covered: untagged resources outside the group."
 
         if (Test-Path $runFile) {
             $saved = (Get-Content $runFile -Raw | ConvertFrom-Json).RunId

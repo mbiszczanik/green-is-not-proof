@@ -8,6 +8,7 @@ Describe 'RunContext' {
     }
     It 'resource group name' {
         Get-DemoResourceGroupName -RunId '202611181805' | Should -Be 'rg-gnp-202611181805'
+        Get-DemoDeploymentName -RunId '202611181805' | Should -Be 'declared-202611181805'
     }
     It 'tags carry project and runId' {
         $t = Get-DemoTag -RunId '202611181805'

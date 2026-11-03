@@ -63,3 +63,20 @@ Describe 'Remove-DemoDiagnosticSetting' {
         Should -Invoke Remove-AzDiagnosticSetting -Times 0
     }
 }
+
+Describe 'Get-DemoDiagnosticSettingName' {
+    It 'returns the listed names' {
+        Mock Get-AzDiagnosticSetting { @([pscustomobject]@{ Name = 'diag-to-log' }) }
+        @(Get-DemoDiagnosticSettingName -ResourceId '/r') | Should -Be @('diag-to-log')
+    }
+
+    It 'returns none for a type that does not support diagnostic settings' {
+        Mock Get-AzDiagnosticSetting { throw 'The resource type does not support diagnostic settings.' }
+        @(Get-DemoDiagnosticSettingName -ResourceId '/r').Count | Should -Be 0
+    }
+
+    It 'a failed read throws instead of reading as no settings' {
+        Mock Get-AzDiagnosticSetting { throw 'Forbidden' }
+        { Get-DemoDiagnosticSettingName -ResourceId '/r' } | Should -Throw 'Forbidden'
+    }
+}

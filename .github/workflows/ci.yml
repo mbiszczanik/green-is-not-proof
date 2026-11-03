@@ -28,6 +28,13 @@ jobs:
             $f | Format-Table -AutoSize | Out-String | Write-Host
             $Host.SetShouldExit(1); exit 1
           }
+      - name: Bicep lint
+        run: |
+          # Linter warnings exit 0, so the gate reads the diagnostics, not the exit code.
+          $out = az bicep lint --file infra/declared.bicep 2>&1 | Out-String
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 0 -or $out -cmatch ': (Warning|Error) ') { $Host.SetShouldExit(1); exit 1 }
       - name: Public content
         run: |
           ./tools/Test-PublicContent.ps1 -Path (git ls-files)

@@ -3,7 +3,10 @@
 A strict health check passes its test, because the test feeds it a hand-written stub object with the
 demanded property filled in. The real resource may never return that property.
 
-The rule: a stubbed test is a declaration of what you believe the API returns; one live read is proof.
+Off stage: the talk's core now uses the gate demo instead (see issue #3). This demo stays as reference material.
+
+The rule: a stubbed test is a declaration of what you believe the API returns. Evidence: the same assertion against
+one live read of the real resource.
 
 Candidate property: `PrivateLinkScopedResources`. Confirmed by a live read on 2026-11-03: the property is
 empty on a fresh workspace, so strict health is `False` and lenient health is `True`.
@@ -11,7 +14,7 @@ empty on a fresh workspace, so strict health is `False` and lenient health is `T
 I chose it from the documented `PSWorkspace` output type of `Get-AzOperationalInsightsWorkspace`
 (<https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.commands.operationalinsights.models.psworkspace>).
 It lists the private link scopes the workspace belongs to, so it only has content in that configuration. The
-documentation does not say what a fresh workspace returns; this is reasoning, not a live observation.
+documentation does not say what a fresh workspace returns; the live read above does.
 
 ## On stage
 

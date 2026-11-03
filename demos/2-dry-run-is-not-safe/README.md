@@ -3,7 +3,9 @@
 A script with a `-DryRun` switch looks safe to try. But the switch only guards the calls its author
 remembered to put behind it. One call outside the guard changes real state on every "dry" run.
 
-The rule: a dry-run switch is a declaration; a syntax-tree test over every call is proof.
+The rule: a dry-run switch is a declaration. Evidence: a dry run under a Reader-only identity, with zero write
+operations in the Activity Log. This demo shows the fast pre-check, a syntax-tree test over every call; it is not
+evidence that nothing mutated.
 
 ## On stage
 

@@ -1,8 +1,10 @@
 BeforeAll {
     $script:Sub = [guid]::NewGuid().ToString()
-    $script:StubNames = 'Get-AzContext', 'Get-AzResource'
+    $script:StubNames = 'Get-AzContext', 'Get-AzResource', 'Get-AzResourceGroupDeployment', 'Get-AzResourceGroupDeploymentOperation'
     Set-Item -Path 'function:global:Get-AzContext' -Value ([scriptblock]::Create('param()'))
     Set-Item -Path 'function:global:Get-AzResource' -Value ([scriptblock]::Create('param($ResourceGroupName, $TagName, $TagValue)'))
+    Set-Item -Path 'function:global:Get-AzResourceGroupDeployment' -Value ([scriptblock]::Create('param($ResourceGroupName, $Name)'))
+    Set-Item -Path 'function:global:Get-AzResourceGroupDeploymentOperation' -Value ([scriptblock]::Create('param($ResourceGroupName, $DeploymentName)'))
     $script:Dir = "$PSScriptRoot/../demos/0-tag-is-not-ownership"
     . $script:Dir/Invoke-TagAudit.ps1
     . $script:Dir/Invoke-OwnershipAudit.ps1
@@ -29,6 +31,12 @@ BeforeAll {
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
         Mock Get-AzResource { $script:inv }
         Mock Get-DemoExpectedSubscriptionId { $script:Sub }
+        # The deployment record lists the three declared resources, an extension resource and an output step.
+        Mock Get-AzResourceGroupDeployment { [pscustomobject]@{ ProvisioningState = 'Succeeded' } }
+        $script:ops = @($script:inv | Select-Object -First 3 | ForEach-Object { [pscustomobject]@{ TargetResource = $_.Id.ToUpperInvariant() } }) +
+        @([pscustomobject]@{ TargetResource = "$($script:inv[2].Id)/blobServices/default/providers/Microsoft.Insights/diagnosticSettings/diag-to-log" },
+            [pscustomobject]@{ TargetResource = $null })
+        Mock Get-AzResourceGroupDeploymentOperation { $script:ops }
     }
 }
 
@@ -88,7 +96,8 @@ Describe 'Invoke-OwnershipAudit' {
     It 'returns 1 and lists vm-traffic, its NIC and OS disk' {
         $r = Invoke-Capture { Invoke-OwnershipAudit -RunId $script:RunIdValue -OutDir $TestDrive }
         $r.Code | Should -Be 1
-        $r.Text | Should -Match 'Not declared in code:'
+        $r.Text | Should -Match 'Not in the deployment record:'
+        $r.Text | Should -Match 'vm-traffic '
         $r.Text | Should -Match 'vm-traffic-nic'
         $r.Text | Should -Match 'vm-traffic_OsDisk_1_abc123'
         $r.Text | Should -Not -Match 'vnet-gnp'
@@ -104,7 +113,25 @@ Describe 'Invoke-OwnershipAudit' {
         $script:inv = @($script:inv | Select-Object -First 3)
         $r = Invoke-Capture { Invoke-OwnershipAudit -RunId $script:RunIdValue -OutDir $TestDrive }
         $r.Code | Should -Be 0
-        $r.Text | Should -Match 'All 3 resources are declared in code: OK'
+        $r.Text | Should -Match 'All 3 resources are in the deployment record: OK'
+    }
+
+    It 'reads the record of the run''s deployment' {
+        $null = Invoke-Capture { Invoke-OwnershipAudit -RunId $script:RunIdValue -OutDir $TestDrive }
+        Should -Invoke Get-AzResourceGroupDeploymentOperation -Times 1 -Exactly -ParameterFilter { $ResourceGroupName -eq 'rg-gnp-202611181805' -and $DeploymentName -eq 'declared-202611181805' }
+    }
+
+    It 'returns 1 and names the record when the deployment record is missing' {
+        Mock Get-AzResourceGroupDeployment { throw 'DeploymentNotFound' }
+        $r = Invoke-Capture { Invoke-OwnershipAudit -RunId $script:RunIdValue -OutDir $TestDrive }
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'Deployment record declared-202611181805 not readable'
+        $r.Text | Should -Not -Match 'OK'
+    }
+
+    It 'returns 1 when the deployment did not succeed' {
+        Mock Get-AzResourceGroupDeployment { [pscustomobject]@{ ProvisioningState = 'Failed' } }
+        (Invoke-Capture { Invoke-OwnershipAudit -RunId $script:RunIdValue -OutDir $TestDrive }).Code | Should -Be 1
     }
 
     It 'returns 1 on an empty inventory' {
