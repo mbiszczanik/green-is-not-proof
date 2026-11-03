@@ -30,18 +30,17 @@ function Test-HealthPropertyEmpty {
 function Test-WorkspaceHealth {
     <#
     .SYNOPSIS
-    Health check for a Log Analytics workspace object. Strict demands ProvisioningState Succeeded and a non-empty demanded property; Lenient fails only on Failed or Deleting.
+    Health check for a Log Analytics workspace object: passes only when ProvisioningState is Succeeded and the demanded property is non-empty.
+    .DESCRIPTION
+    Missing data never passes: a missing or blank ProvisioningState, a missing property or any other state returns false.
     .EXAMPLE
-    Test-WorkspaceHealth -Workspace $ws -Mode Lenient
+    Test-WorkspaceHealth -Workspace $ws
     #>
     [CmdletBinding()]
     [OutputType([bool])]
-    param(
-        [Parameter(Mandatory)][AllowNull()][object]$Workspace,
-        [ValidateSet('Strict', 'Lenient')][string]$Mode = 'Strict'
-    )
+    param([Parameter(Mandatory)][AllowNull()][object]$Workspace)
+    if ($null -eq $Workspace) { return $false }
     $state = $Workspace.PSObject.Properties['ProvisioningState']
     $state = if ($state) { [string]$state.Value } else { '' }
-    if ($Mode -eq 'Lenient') { return ($state -notin 'Failed', 'Deleting') }
     return ($state -eq 'Succeeded' -and -not (Test-HealthPropertyEmpty -Workspace $Workspace))
 }

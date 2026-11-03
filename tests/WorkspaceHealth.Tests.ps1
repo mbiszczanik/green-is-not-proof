@@ -30,33 +30,32 @@ BeforeAll {
 AfterAll { foreach ($n in $script:StubNames) { Remove-Item "function:global:$n" -ErrorAction SilentlyContinue } }
 
 Describe 'Test-WorkspaceHealth' {
-    It 'Strict is true with the property filled' {
-        Test-WorkspaceHealth -Workspace (New-TestWorkspace -Prop @('x')) -Mode Strict | Should -BeTrue
-    }
-    It 'Strict is the default mode' {
+    It 'is true with the state Succeeded and the property filled' {
         Test-WorkspaceHealth -Workspace (New-TestWorkspace -Prop @('x')) | Should -BeTrue
+    }
+    It 'is false with the property null' {
         Test-WorkspaceHealth -Workspace (New-TestWorkspace) | Should -BeFalse
     }
-    It 'Strict is false with the property null' {
-        Test-WorkspaceHealth -Workspace (New-TestWorkspace) -Mode Strict | Should -BeFalse
+    It 'is false with the property an empty list' {
+        Test-WorkspaceHealth -Workspace (New-TestWorkspace -Prop @()) | Should -BeFalse
     }
-    It 'Strict is false with the property an empty list' {
-        Test-WorkspaceHealth -Workspace (New-TestWorkspace -Prop @()) -Mode Strict | Should -BeFalse
+    It 'is false for the state <state>' -ForEach @(@{ state = 'Updating' }, @{ state = 'Failed' }, @{ state = 'Deleting' }, @{ state = '' }) {
+        Test-WorkspaceHealth -Workspace (New-TestWorkspace -State $state -Prop @('x')) | Should -BeFalse
     }
-    It 'Strict is false when the state is not Succeeded' {
-        Test-WorkspaceHealth -Workspace (New-TestWorkspace -State 'Updating' -Prop @('x')) -Mode Strict | Should -BeFalse
+    It 'is false when ProvisioningState is missing, never read as success' {
+        Test-WorkspaceHealth -Workspace ([pscustomobject]@{ (Get-HealthPropertyName) = @('x') }) | Should -BeFalse
     }
-    It 'swapping the property name changes what Strict demands' {
+    It 'is false for a null workspace' {
+        Test-WorkspaceHealth -Workspace $null | Should -BeFalse
+    }
+    It 'swapping the property name changes what it demands' {
         $ws = [pscustomobject]@{ ProvisioningState = 'Succeeded'; OtherProperty = @('x') }
-        Test-WorkspaceHealth -Workspace $ws -Mode Strict | Should -BeFalse
+        Test-WorkspaceHealth -Workspace $ws | Should -BeFalse
         Mock Get-HealthPropertyName { 'OtherProperty' }
-        Test-WorkspaceHealth -Workspace $ws -Mode Strict | Should -BeTrue
+        Test-WorkspaceHealth -Workspace $ws | Should -BeTrue
     }
-    It 'Lenient is true with the property null' {
-        Test-WorkspaceHealth -Workspace (New-TestWorkspace) -Mode Lenient | Should -BeTrue
-    }
-    It 'Lenient is false for <state>' -ForEach @(@{ state = 'Failed' }, @{ state = 'Deleting' }) {
-        Test-WorkspaceHealth -Workspace (New-TestWorkspace -State $state -Prop @('x')) -Mode Lenient | Should -BeFalse
+    It 'has no Lenient mode' {
+        (Get-Command Test-WorkspaceHealth).Parameters.ContainsKey('Mode') | Should -BeFalse
     }
 }
 
@@ -68,8 +67,17 @@ Describe 'Invoke-ShowLiveProperty' {
         $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
         $text | Should -Match "$(Get-HealthPropertyName): \(empty\)"
         $text | Should -Match 'Strict health: False'
-        $text | Should -Match 'Lenient health: True'
+        $text | Should -Match 'ProvisioningState: Succeeded'
+        $text | Should -Not -Match 'Lenient'
+        $text | Should -Match 'One read of this workspace, in this configuration, at this moment\.'
         Should -Invoke Get-AzOperationalInsightsWorkspace -Times 1 -Exactly -ParameterFilter { $ResourceGroupName -eq 'rg-gnp-202611181805' -and $Name -eq 'log-gnp-202611181805' }
+    }
+    It 'prints (missing) when the live object has no ProvisioningState' {
+        Initialize-Mock ([pscustomobject]@{ (Get-HealthPropertyName) = @('x') })
+        $res = Invoke-ShowLiveProperty -OutDir $script:out 6>&1
+        $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
+        $text | Should -Match 'ProvisioningState: \(missing\)'
+        $text | Should -Match 'Strict health: False'
     }
     It 'masks the subscription id in a populated value' {
         Initialize-Mock (New-TestWorkspace -Prop @("/subscriptions/$($script:Sub)/x"))

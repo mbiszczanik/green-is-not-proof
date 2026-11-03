@@ -3,7 +3,8 @@
 Demo 3: reads the run's Log Analytics workspace live and prints the property the strict health check demands.
 .DESCRIPTION
 Needs a run from scripts/Start-DemoRun.ps1 (-RunId, else out/run.json). Prints the masked property value
-(or "(empty)"), then the Strict and Lenient verdicts. It reports; it is not a gate, so it exits 0 on a read.
+(or "(empty)"), the ProvisioningState (or "(missing)") and the verdict. It reports; it is not a gate, so it
+exits 0 on a read. It describes one read of one workspace at one moment, nothing more.
 .EXAMPLE
 ./demos/3-stub-proves-assumption/Show-LiveProperty.ps1
 #>
@@ -22,7 +23,7 @@ $ErrorActionPreference = 'Stop'
 function Invoke-ShowLiveProperty {
     <#
     .SYNOPSIS
-    Prints the live property and both verdicts; returns 0 on a successful read or 1 on any failure.
+    Prints the live property, the state and the verdict; returns 0 on a successful read or 1 on any failure.
     .EXAMPLE
     $code = Invoke-ShowLiveProperty -OutDir ./out
     #>
@@ -51,10 +52,13 @@ function Invoke-ShowLiveProperty {
         $name = Get-HealthPropertyName
         $value = '(empty)'
         if (-not (Test-HealthPropertyEmpty -Workspace $ws)) { $value = @($ws.PSObject.Properties[$name].Value | Where-Object { "$_".Trim() }) -join ', ' }
+        $stateProp = $ws.PSObject.Properties['ProvisioningState']
+        $state = if ($stateProp -and "$($stateProp.Value)".Trim()) { [string]$stateProp.Value } else { '(missing)' }
         $lines = @(
             "${name}: $value"
-            "Strict health: $(Test-WorkspaceHealth -Workspace $ws -Mode Strict)"
-            "Lenient health: $(Test-WorkspaceHealth -Workspace $ws -Mode Lenient)"
+            "ProvisioningState: $state"
+            "Strict health: $(Test-WorkspaceHealth -Workspace $ws)"
+            'One read of this workspace, in this configuration, at this moment.'
         )
         Write-Host (ConvertTo-SafeText -Text ($lines -join [Environment]::NewLine) -SubscriptionId $sub)
         return 0

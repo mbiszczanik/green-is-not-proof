@@ -3,8 +3,15 @@
 A diagnostic setting is a separate resource attached to a storage account's blob service. Deleting the
 account reports success, but the setting may stay behind and attach to a new account with the same name.
 
-The rule: a successful delete is a declaration. Evidence: listing the non-cascaded child resources, read back after
-the delete.
+The rule: a successful delete is a declaration. The stronger check is listing the non-cascaded child resources, read
+back after the delete.
+
+## What each check settles
+
+| Check | Settles | Does not settle |
+| --- | --- | --- |
+| `Remove-AzStorageAccount` succeeded (the green) | that the delete call returned | what else the delete left behind |
+| Listing diagnostic settings on the new account (step 4) | that this child type was left behind and re-attached to a same-named account | other child types, other resource types, other regions |
 
 ## Before the talk
 
@@ -25,8 +32,13 @@ Each step prints one masked line.
 
 The point lands at step 4: the delete was green, and the old setting is still listed on the new account.
 
-Live result, 2026-11-03: step 4 printed `Diagnostic settings on the NEW account: diag-to-log`, and
-step 5 removed it.
+**Observed 2026-11-03**, earlier setup (the account and its setting were created by the earlier setup script, code
+at `1992109`, recorded in PR #2): step 4 printed `Diagnostic settings on the NEW account: diag-to-log`, and step 5
+removed it.
+
+**Observed 2026-11-03**, current setup (the account and the setting come from `infra/declared.bicep`, run
+`202611031935`, code at `15907c2`): the same output, every step exit 0. See
+[docs/live-run-log.md](../../docs/live-run-log.md). Run it again before each delivery.
 
 ## If you stop after step 2
 

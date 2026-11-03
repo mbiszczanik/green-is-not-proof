@@ -7,6 +7,6 @@ Describe 'Strict workspace health, hand-written stub' {
             ProvisioningState          = 'Succeeded'
             (Get-HealthPropertyName) = @('/subscriptions/<subscription-id>/resourceGroups/rg/providers/Microsoft.Insights/privateLinkScopes/ampls')
         }
-        Test-WorkspaceHealth -Workspace $stub -Mode Strict | Should -BeTrue
+        Test-WorkspaceHealth -Workspace $stub | Should -BeTrue
     }
 }

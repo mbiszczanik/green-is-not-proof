@@ -20,23 +20,33 @@ Author: Marcin Biszczanik, Cloud and Platform Consultant. [mbiszczanik.dev](http
 
 ## The question and the four rules
 
-Before trusting any green, ask: **What would this show if it did not work?** Evidence is what you read back from a
-source independent of the thing being checked.
+Before trusting any green, ask: **What would this show if it did not work?** A better check reads back from a
+source independent of the thing being checked, and settles one specific question in one configuration at one moment.
 
-1. A tag is a declaration. Evidence: the group's full inventory compared with the deployment record.
-2. A successful delete is a declaration. Evidence: listing the non-cascaded child resources, read back after the
-   delete.
-3. A dry-run switch is a declaration. Evidence: a dry run under a Reader-only identity, with zero write operations
-   in the Activity Log. The syntax-tree test is a fast pre-check, not evidence that nothing mutated.
-4. A stubbed test is a declaration. Evidence: the same assertion against one live read of the real resource.
+1. A tag is a declaration. Stronger check: the group's full inventory compared with the deployment record. It finds
+   resources the deployment did not touch; it does not say who created a listed one.
+2. A successful delete is a declaration. Stronger check: listing the non-cascaded child resources, read back after
+   the delete. It settles the child types you list.
+3. A dry-run switch is a declaration. Stronger check: a dry run under a Reader-only identity, with no write
+   operations in the Activity Log. The syntax-tree test is a fast pre-check that finds specific calls; it does not
+   show that a whole script is safe.
+4. A stubbed test is a declaration. Stronger check: the same assertion against one live read of the real resource.
+   The stubbed test still checks your program's logic; the live read shows what the service returned for that
+   resource, then.
 
-Each rule has a command in the [cheat sheet](docs/cheat-sheet.md).
+Each rule has a command and its limits in the [cheat sheet](docs/cheat-sheet.md).
 
 ## Status
 
-Demos 1 and 3 and the teardown ran live once on 2026-11-03 (swedencentral, one run, teardown exit 0, nothing
-left). Setup and demo 0 were reworked since (a Bicep deployment and a separate rogue-VM script) and have not run
-live in their new form. Demo 2 is offline by design. The backup recordings are still to be made.
+The current setup, demos 0, 1 and 3 and the teardown with read-back were observed live once on 2026-11-03
+(swedencentral, run `202611031935`, every step exit 0 except the ownership audit, which exits 1 by design;
+afterwards no resource group or tagged resource was left). Demo 2 is offline by design. Not yet observed: the
+Reader-only dry run behind rule 3 and the cheat sheet commands for rules 1 and 3. The backup recordings are still
+to be made.
+
+Before each delivery, run the whole sequence once and add a dated block to
+[docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a
+line there says "observed", read the demo READMEs' output as expected results.
 
 ## Prerequisites
 
@@ -81,7 +91,7 @@ Then run the demos in order. Each has its own README with the on-stage steps:
 1. [Demo 0: a tag is not proof of ownership](demos/0-tag-is-not-ownership/README.md)
 2. [Demo 1: deleted is not cleaned up](demos/1-deleted-is-not-cleaned/README.md)
 3. [Demo 2: dry-run is not safe](demos/2-dry-run-is-not-safe/README.md)
-4. [Demo 3: a stubbed test proves only your assumption](demos/3-stub-proves-assumption/README.md)
+4. [Demo 3: a stubbed test checks only your assumption](demos/3-stub-proves-assumption/README.md)
 
 Tear everything down and read back what is left:
 

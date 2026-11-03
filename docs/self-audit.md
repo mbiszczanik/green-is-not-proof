@@ -32,8 +32,17 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 - Green: "a syntax-tree test over every call is proof"; "one live read is proof".
 - Evidence: a syntax-tree test shows where calls sit, not that nothing changed; neither rule named an independent
   source.
-- Fix: every rule names its evidence source. The dry-run evidence is a run under a Reader-only identity with zero
-  write operations in the Activity Log; the syntax-tree test is a fast pre-check.
+- Fix: every rule names its stronger check and what it does not settle. The dry-run check is a run under a
+  Reader-only identity with no write operations in the Activity Log; the syntax-tree test is a fast pre-check that
+  finds specific calls and does not show a whole script is safe.
+
+## Demo 3 accepted a missing state as success
+
+- Green: the Lenient mode of the health check returned true for any workspace whose state was not `Failed` or
+  `Deleting`.
+- Evidence: a workspace object with no `ProvisioningState` at all passed.
+- Fix: the Lenient mode is removed. Missing or blank state, a missing property, a null workspace or any state other
+  than `Succeeded` returns false, and tests cover each.
 
 ## Demo 3's README contradicted itself
 
@@ -86,5 +95,6 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 
 ## Still open
 
-Live runs of the reworked setup, demo 0, teardown read-back and auto-shutdown, and the replacement of demo 3 by a
-gate demo, are tracked in #3 and #4.
+The reworked setup, demo 0, demo 1, demo 3 and the teardown read-back ran live once on 2026-11-03 (see
+[live-run-log.md](live-run-log.md)). Still open and tracked in #3 and #4: the gate demo that replaces demo 3 on
+stage, the module A demo, the Reader-only dry run behind rule 3, and the backup recordings.

@@ -1,31 +1,55 @@
-# Demo 3: a stubbed test proves only your assumption
+# Demo 3: a stubbed test checks only your assumption
 
 A strict health check passes its test, because the test feeds it a hand-written stub object with the
-demanded property filled in. The real resource may never return that property.
+demanded property filled in. The real resource may not return that property.
 
-Off stage: the talk's core now uses the gate demo instead (see issue #3). This demo stays as reference material.
+Off stage: the talk's core uses the gate demo instead (see issue #3). This demo stays as reference material.
 
-The rule: a stubbed test is a declaration of what you believe the API returns. Evidence: the same assertion against
-one live read of the real resource.
+The rule: a stubbed test is a declaration of what you believe the API returns. The stronger check is the same
+assertion against one live read of the real resource.
 
-Candidate property: `PrivateLinkScopedResources`. Confirmed by a live read on 2026-11-03: the property is
-empty on a fresh workspace, so strict health is `False` and lenient health is `True`.
+## What each check settles
 
-I chose it from the documented `PSWorkspace` output type of `Get-AzOperationalInsightsWorkspace`
-(<https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.commands.operationalinsights.models.psworkspace>).
-It lists the private link scopes the workspace belongs to, so it only has content in that configuration. The
-documentation does not say what a fresh workspace returns; the live read above does.
+| Check | Settles | Does not settle |
+| --- | --- | --- |
+| Stubbed Pester suite | the program's logic, given the object you wrote | what the real service returns |
+| Live read (`Show-LiveProperty.ps1`) | what the service returned for this workspace, in this configuration, at this moment | what it returns for another configuration, region or API version |
+
+Both stay useful: the tests keep guarding the logic, the live read checks the assumption behind the stub.
+
+## Why this property
+
+The strict check demands `PrivateLinkScopedResources`. It was chosen before any live read, from the documented
+`PSWorkspace` output type of `Get-AzOperationalInsightsWorkspace`
+(<https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.commands.operationalinsights.models.psworkspace>):
+it lists the private link scopes the workspace belongs to, so it can only have content in that configuration. A
+check author who read that page could plausibly treat "has a private link scope" as part of "healthy". The
+documentation does not say what a workspace outside a scope returns.
+
+This is a constructed example of the mechanism, not a claim that real health checks demand this property. The real
+case is in SkyCraft: two health checks demanded fields the service did not return, their tests passed on
+hand-written objects, and one live run showed the fields were empty.
+
+## Results
+
+- **Observed 2026-11-03**, on a workspace from the earlier setup (code at `1992109`, recorded in PR #2): the property
+  was empty, so strict health was `False`.
+- **Observed 2026-11-03**, current setup (workspace deployed from `infra/declared.bicep`, run `202611031935`, code at
+  `15907c2`, exit 0): `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False`.
+  See [docs/live-run-log.md](../../docs/live-run-log.md). Run it again before each delivery.
 
 ## On stage
 
-1. Show `Test-WorkspaceHealth.ps1`: Strict demands `ProvisioningState` `Succeeded` and a non-empty
-   `PrivateLinkScopedResources`.
+1. Show `Test-WorkspaceHealth.ps1`: it passes only with `ProvisioningState` `Succeeded` and a non-empty
+   `PrivateLinkScopedResources`. A missing state, a missing property or any other state returns `False`; nothing
+   missing is read as success.
 2. Run the stubbed suite, which is green:
 
    ```powershell
    Invoke-Pester ./demos/3-stub-proves-assumption -Output Detailed
    ```
 
+   It confirms the logic for the stub you wrote.
 3. Run the live read against the current run (needs `Connect-AzAccount` and a run from
    `scripts/Start-DemoRun.ps1`):
 
@@ -33,14 +57,19 @@ documentation does not say what a fresh workspace returns; the live read above d
    ./demos/3-stub-proves-assumption/Show-LiveProperty.ps1
    ```
 
-   Expected if the candidate holds: `PrivateLinkScopedResources: (empty)` and `Strict health: False`, while
-   `Lenient health: True`.
-4. Show the fix: `Test-WorkspaceHealth -Mode Lenient` fails only on an explicit `Failed` or `Deleting` state.
+   Expected output (shape):
 
-The stubbed suite lives here, not in `./tests`. `tests/WorkspaceHealth.Tests.ps1` covers the function and the
-live-read script with mocks and runs in CI.
+   ```text
+   PrivateLinkScopedResources: (empty)
+   ProvisioningState: Succeeded
+   Strict health: False
+   One read of this workspace, in this configuration, at this moment.
+   ```
 
-## Origin
+4. State what it settles: for this workspace the assumption behind the stub did not hold, so the check as
+   written would report an unhealthy workspace that is provisioned. It does not settle whether other workspaces
+   differ. The remedy is the rule itself: build the check from what a live read returns, and keep the stub as a
+   copy of that response.
 
-In SkyCraft, two health checks demanded fields the service never returns. Their tests passed on hand-written
-objects; one live run showed the fields were empty.
+`tests/WorkspaceHealth.Tests.ps1` covers the function and the live-read script with mocks and runs in CI. Those
+mocks check the program's logic; they do not replace step 3.

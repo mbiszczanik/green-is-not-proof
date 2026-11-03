@@ -1,10 +1,20 @@
 # Demo 0: a tag is not proof of ownership
 
-A tag-based audit reports green while a VM the code never created sits in the resource group.
-The ownership audit compares the group's full inventory with the deployment record, the list Azure wrote of what
-the declared code deployed, and flags it.
+A tag-based audit reports green while a VM the declared deployment never created sits in the resource group. The
+ownership audit lists the resources in the group that are absent from the deployment record, the list Azure wrote of
+what `infra/declared.bicep` deployed.
 
-The rule: a tag is a declaration. Evidence: the group's full inventory compared with the deployment record.
+The rule: a tag is a declaration. The stronger check is the group's full inventory compared with the deployment record.
+
+## What each check settles
+
+| Check | Settles | Does not settle |
+| --- | --- | --- |
+| Tag audit | that resources carry the project tags | who created them: anyone can copy a tag |
+| Ownership audit | which resources in the group the deployment record does not list | who created a resource that is listed (an incremental deployment can update a resource that already existed), who created an unlisted one, or whether it is unwanted |
+
+Detecting a resource outside the record is a finding to investigate, not a verdict on origin. A matching name or id
+does not confirm who created a resource.
 
 Prerequisites:
 
@@ -16,6 +26,17 @@ Prerequisites:
 
 Run demo 0 before demo 1: demo 1 recreates the storage account outside the deployment, and the audit would then
 flag it too.
+
+## Results
+
+- **Observed 2026-11-03**, earlier setup (the audit compared names with a hand-written list, code at `1992109`,
+  recorded in PR #2): tag audit exit 0 with 6 resources; ownership audit exit 1, listing `vm-traffic`,
+  `vm-traffic-nic` and its OS disk.
+- **Observed 2026-11-03**, current setup (run `202611031935`, code at `15907c2`, see
+  [docs/live-run-log.md](../../docs/live-run-log.md)): tag audit exit 0 with 7 resources; ownership audit exit 1,
+  listing `vm-traffic`, `vm-traffic-nic`, the OS disk and the shutdown schedule. The target resources of the
+  deployment operations were the resource ids the comparison expects.
+- Run it again before each delivery and add a dated block to the log.
 
 ## On-stage sequence
 
@@ -37,6 +58,8 @@ flag it too.
    All 7 resources carry project tags: OK
    ```
 
+   What it confirms: the tags are there. What it does not settle: who created the resources.
+
 2. Run the ownership audit. It lists the whole resource group, tagged or not, and compares each resource id with
    the target resources of the `declared-<runId>` deployment operations:
 
@@ -52,15 +75,15 @@ flag it too.
    ----                         ------------                     --
    vm-traffic                   Microsoft.Compute/virtualMachines /subscriptions/<sub>/resourceGroups/rg-gnp-.../vm-traffic
    vm-traffic-nic               Microsoft.Network/networkInterfaces ...
-   vm-traffic_OsDisk_1_<hex>    Microsoft.Compute/disks          ...
+   vm-traffic_disk1_<hex>      Microsoft.Compute/disks          ...
    shutdown-computevm-vm-traffic Microsoft.DevTestLab/schedules  ...
    ```
 
    If the deployment record is missing or did not succeed, the audit exits 1 and names the record instead of
    reporting anything as declared or undeclared.
 
-3. State the rule. Whoever created the VM could copy the tags. Only the record Azure wrote when the code deployed
-   shows it was never declared.
+3. State what the comparison does: it detects resources the deployment record does not list. It does not say who
+   made them, and a green tag audit never could.
 
 Both scripts accept `-RunId` (otherwise they read `out/run.json`) and `-OutDir`. The subscription id is masked in output.
 
