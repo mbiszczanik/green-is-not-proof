@@ -1,3 +1,23 @@
+function Get-DemoDiagnosticSettingName {
+    <#
+    .SYNOPSIS
+    Returns the names of the diagnostic settings listed on a resource; none for a type that does not support them.
+    .DESCRIPTION
+    Any other list failure throws, so a failed read never counts as "no settings".
+    .EXAMPLE
+    Get-DemoDiagnosticSettingName -ResourceId $storage.Id
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param([Parameter(Mandatory)][string]$ResourceId)
+    try { $settings = @(Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction Stop) }
+    catch {
+        if ($_.Exception.Message -match 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest') { return @() }
+        throw
+    }
+    @($settings | ForEach-Object { [string]$_.Name })
+}
+
 function Remove-DemoDiagnosticSetting {
     <#
     .SYNOPSIS

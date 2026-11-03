@@ -1,9 +1,10 @@
 <#
 .SYNOPSIS
-Demo 0, the red: compares the resource group's inventory with the names the code declares.
+Demo 0, the red: compares the resource group's inventory with the deployment record of the declared code.
 .DESCRIPTION
-Inventory is everything in the run's resource group, tagged or not. Expected names come from
-config/demo-manifest.psd1. Anything else is listed under 'Not declared in code:' and the exit code is 1.
+Inventory is everything in the run's resource group, tagged or not. Expected ids come from the operations of
+the run's deployment of infra/declared.bicep, an Azure record of what the code deployed. Anything else is listed
+under 'Not in the deployment record:' and the exit code is 1. A missing or failed deployment record exits 1 too.
 RunId comes from -RunId or out/run.json.
 .EXAMPLE
 ./demos/0-tag-is-not-ownership/Invoke-OwnershipAudit.ps1
@@ -38,16 +39,15 @@ function Invoke-OwnershipAudit {
         $RunId = Resolve-AuditRunId -RunId $RunId -OutDir $OutDir
         Assert-DemoRunSubscription -Run (Read-DemoRun -OutDir $OutDir -RunId $RunId) -Current $sub
         $rg = Get-DemoResourceGroupName -RunId $RunId
-        $manifest = Import-PowerShellDataFile $PSScriptRoot/../../config/demo-manifest.psd1
-        $expected = @($manifest.Names | ForEach-Object { $_ -replace '\{runId\}', $RunId })
+        $expected = @(Get-DeclaredResourceId -ResourceGroupName $rg -DeploymentName (Get-DemoDeploymentName -RunId $RunId))
         $inventory = @(Get-AzResource -ResourceGroupName $rg)
-        $flagged = @(Find-UnownedResource -Inventory $inventory -ExpectedName $expected)
+        $flagged = @(Find-UnownedResource -Inventory $inventory -ExpectedId $expected)
         if ($flagged.Count -gt 0) {
-            Write-Host 'Not declared in code:'
+            Write-Host 'Not in the deployment record:'
             Write-Host ($flagged | Write-DemoOutput -SubscriptionId $sub)
             return 1
         }
-        Write-Host "All $($inventory.Count) resources are declared in code: OK"
+        Write-Host "All $($inventory.Count) resources are in the deployment record: OK"
         return 0
     }
     catch {

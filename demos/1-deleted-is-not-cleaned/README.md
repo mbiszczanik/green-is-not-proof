@@ -3,7 +3,8 @@
 A diagnostic setting is a separate resource attached to a storage account's blob service. Deleting the
 account reports success, but the setting may stay behind and attach to a new account with the same name.
 
-The rule: a successful delete is a declaration; listing the non-cascaded children afterwards is proof.
+The rule: a successful delete is a declaration. Evidence: listing the non-cascaded child resources, read back after
+the delete.
 
 ## Before the talk
 

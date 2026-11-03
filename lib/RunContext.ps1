@@ -25,6 +25,19 @@ function Get-DemoResourceGroupName {
     "rg-gnp-$RunId"
 }
 
+function Get-DemoDeploymentName {
+    <#
+    .SYNOPSIS
+    Returns the name of the run's one declared deployment (infra/declared.bicep).
+    .EXAMPLE
+    Get-DemoDeploymentName -RunId '202611181805'
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$RunId)
+    "declared-$RunId"
+}
+
 function Get-DemoTag {
     <#
     .SYNOPSIS

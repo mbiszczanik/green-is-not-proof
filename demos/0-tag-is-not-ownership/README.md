@@ -1,10 +1,20 @@
 # Demo 0: a tag is not proof of ownership
 
 A tag-based audit reports green while a VM the code never created sits in the resource group.
-The ownership audit compares the group's inventory with what the code declares and flags it.
+The ownership audit compares the group's full inventory with the deployment record, the list Azure wrote of what
+the declared code deployed, and flags it.
 
-Prerequisite: `./scripts/Start-DemoRun.ps1` has run (it writes `out/run.json` and creates the rogue VM
-`vm-traffic`, which is absent from `config/demo-manifest.psd1` on purpose).
+The rule: a tag is a declaration. Evidence: the group's full inventory compared with the deployment record.
+
+Prerequisites:
+
+1. `./scripts/Start-DemoRun.ps1` has run. It deploys `infra/declared.bicep` as one deployment named
+   `declared-<runId>` and writes `out/run.json`.
+2. `./scripts/New-RogueResource.ps1` has run. It creates the VM `vm-traffic` and its NIC with the run's tags copied
+   on, outside that deployment, the way a resource made by hand or by another pipeline would appear.
+
+Run demo 0 before demo 1: demo 1 recreates the storage account outside the deployment, and the audit would then
+flag it too.
 
 ## On-stage sequence
 
@@ -26,7 +36,8 @@ Prerequisite: `./scripts/Start-DemoRun.ps1` has run (it writes `out/run.json` an
    All 6 resources carry project tags: OK
    ```
 
-2. Run the ownership audit. It lists the whole resource group, tagged or not, and compares it with the names in the manifest:
+2. Run the ownership audit. It lists the whole resource group, tagged or not, and compares each resource id with
+   the target resources of the `declared-<runId>` deployment operations:
 
    ```powershell
    ./demos/0-tag-is-not-ownership/Invoke-OwnershipAudit.ps1
@@ -35,7 +46,7 @@ Prerequisite: `./scripts/Start-DemoRun.ps1` has run (it writes `out/run.json` an
    Expected shape (exit code 1):
 
    ```text
-   Not declared in code:
+   Not in the deployment record:
    Name                         ResourceType                     Id
    ----                         ------------                     --
    vm-traffic                   Microsoft.Compute/virtualMachines /subscriptions/<sub>/resourceGroups/rg-gnp-.../vm-traffic
@@ -43,8 +54,11 @@ Prerequisite: `./scripts/Start-DemoRun.ps1` has run (it writes `out/run.json` an
    vm-traffic_OsDisk_1_<hex>    Microsoft.Compute/disks          ...
    ```
 
-3. State the rule: **A tag is a declaration; the code-derived inventory is proof.**
-   Whoever created the VM could copy the tags. Only the comparison with the code shows it was never declared.
+   If the deployment record is missing or did not succeed, the audit exits 1 and names the record instead of
+   reporting anything as declared or undeclared.
+
+3. State the rule. Whoever created the VM could copy the tags. Only the record Azure wrote when the code deployed
+   shows it was never declared.
 
 Both scripts accept `-RunId` (otherwise they read `out/run.json`) and `-OutDir`. The subscription id is masked in output.
 
