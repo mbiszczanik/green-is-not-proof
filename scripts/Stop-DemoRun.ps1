@@ -7,7 +7,7 @@ them again and stops with exit 1 if any are still listed (the remove call's succ
 setting is a separate resource that deleting the group may not cascade to. Then deletes the group, checks that it
 is gone and queries resources tagged runId=<id> (up to 6 times, 10 s apart), exiting 1 if any remain. Not covered:
 untagged resources outside the group, such as the shared NetworkWatcherRG. The run id comes from -RunId
-or out/run.json; run.json is removed only after a clean teardown of the same run. The current subscription must
+or out/run.json; run.json and the generated SSH key pair are removed only after a clean teardown. The current subscription must
 equal the one in run.json (or the configured demo subscription when only -RunId is given). If the run's storage
 account is missing from the group, it stops before deleting anything: demo 1's diagnostic setting may survive.
 .EXAMPLE
@@ -106,6 +106,11 @@ function Invoke-StopDemoRun {
         if (Test-Path $runFile) {
             $saved = (Get-Content $runFile -Raw | ConvertFrom-Json).RunId
             if ($saved -eq $RunId) { Remove-Item $runFile -Force }
+        }
+        # The VM it opened is gone; a key left in out/ is a credential with nothing to protect.
+        foreach ($k in 'demo_key', 'demo_key.pub') {
+            $kp = Join-Path $OutDir $k
+            if (Test-Path -LiteralPath $kp) { Remove-Item -LiteralPath $kp -Force; Write-Host "Deleted out/$k" }
         }
         return 0
     }

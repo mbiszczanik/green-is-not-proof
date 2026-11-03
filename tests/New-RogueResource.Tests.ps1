@@ -12,6 +12,7 @@ BeforeAll {
         'Add-AzVMNetworkInterface' = 'param($VM, $Id)'
         'Set-AzVMOSDisk'           = 'param($VM, $CreateOption, $StorageAccountType)'
         'New-AzVM'                 = 'param($ResourceGroupName, $Location, $VM, $Tag)'
+        'New-AzResource'           = 'param($ResourceId, $Location, $Properties, $Tag, [switch]$Force)'
     }
     foreach ($n in $stubs.Keys) { Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create($stubs[$n])) }
     $script:StubNames = $stubs.Keys
@@ -34,6 +35,7 @@ BeforeAll {
             Mock $c { $VM }
         }
         Mock New-AzVM { }
+        Mock New-AzResource { }
     }
 }
 
@@ -49,6 +51,27 @@ Describe 'Invoke-NewRogueResource' {
         Should -Invoke New-AzVMConfig -Times 1 -Exactly -ParameterFilter { $VMSize -eq 'Standard_B2ts_v2' -and $VMName -eq 'vm-traffic' }
         Should -Invoke Set-AzVMBootDiagnostic -Times 1 -Exactly -ParameterFilter { $Disable }
         Should -Invoke New-AzVM -Times 1 -Exactly -ParameterFilter { $ResourceGroupName -eq 'rg-gnp-202611181805' -and $Tag.project -eq 'green-is-not-proof' }
+        (Get-Content (Join-Path $script:out 'run.json') -Raw | ConvertFrom-Json).RogueVmName | Should -Be 'vm-traffic'
+    }
+
+    It 'gives the VM an enabled auto-shutdown schedule 3 hours ahead in UTC, with the run tags' {
+        Write-Run
+        $now = [datetime]::new(2026, 11, 18, 18, 5, 0, [DateTimeKind]::Utc)
+        (Invoke-NewRogueResource -OutDir $script:out -Now $now 6>&1 | Select-Object -Last 1) | Should -Be 0
+        Should -Invoke New-AzResource -Times 1 -Exactly -ParameterFilter {
+            $ResourceId -like '*/resourceGroups/rg-gnp-202611181805/providers/Microsoft.DevTestLab/schedules/shutdown-computevm-vm-traffic' -and
+            $Properties.status -eq 'Enabled' -and $Properties.taskType -eq 'ComputeVmShutdownTask' -and
+            $Properties.dailyRecurrence.time -eq '2105' -and $Properties.timeZoneId -eq 'UTC' -and
+            $Properties.targetResourceId -like '*/providers/Microsoft.Compute/virtualMachines/vm-traffic' -and $Tag.runId -eq '202611181805'
+        }
+    }
+
+    It 'a failed schedule returns 1 but keeps the VM recorded for teardown' {
+        Write-Run
+        Mock New-AzResource { throw 'Forbidden' }
+        $out = @(Invoke-NewRogueResource -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 1
+        ($out | Out-String) | Should -Match 'auto-shutdown schedule was not'
         (Get-Content (Join-Path $script:out 'run.json') -Raw | ConvertFrom-Json).RogueVmName | Should -Be 'vm-traffic'
     }
 

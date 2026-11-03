@@ -35,16 +35,17 @@ A call to `<Verb>-Az*` is guarded when it sits in the non-dry branch
 of an `if` on `$DryRun` or `$WhatIfPreference` (the `else`, or the body of `if (-not $DryRun)`), or follows an
 early `if ($DryRun) { ...; return }` (`exit` and `break` count too). Anything else is reported.
 
-The verbs counted as mutating are the default of `Find-UnguardedMutation` in `lib/DryRunGuard.ps1`: New, Set, Remove,
-Register, Update, Start, Stop, Add, Install, Restart, Invoke, Grant, Revoke, Enable, Disable, Publish, Move, Import,
-Restore, Reset, Rename, Clear, Save, Submit, Suspend, Resume, Unregister, Sync, Backup, Mount, Dismount, Approve, Deny.
+Every `<Verb>-Az*` call counts as mutating unless its verb is on the read-only allow list of `Find-UnguardedMutation`
+in `lib/DryRunGuard.ps1`: Get, Test, Find, Search, Resolve, Measure, Show, Select, Compare, Wait. An unknown verb
+(`Copy-AzStorageBlob`, `ConvertTo-AzVMManagedDisk`, `Undo-AzKeyVaultSecretRemoval`) is reported, not trusted.
 
 ## What it does not prove
 
 Only the exact conditions `$DryRun`, `$WhatIfPreference` and their `-not` / `!` forms count as a guard. Any other
 condition (`-and`, `-or`, comparisons, other variables) is unknown and treated as unguarded on purpose, so the
 check fails red when unsure. `ShouldProcess` and `-WhatIf` are not recognised, and a dynamic call such as
-`& $cmd` is reported as `<dynamic>`.
+`& $cmd` is reported as `<dynamic>`. Calls that are not Az PowerShell cmdlets are not detected at all: az CLI calls and
+raw REST calls (`Invoke-RestMethod`, `Invoke-WebRequest`) pass unreported.
 
 ## Going further
 

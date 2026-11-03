@@ -105,3 +105,26 @@ Describe 'Find-UnguardedMutation dry branch is not its own early exit' {
         @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
     }
 }
+
+Describe 'Find-UnguardedMutation verb allow list' {
+    It 'reports <Command>, a verb no list of mutating verbs named' -ForEach @(
+        @{ Command = 'Copy-AzStorageBlob' }
+        @{ Command = 'ConvertTo-AzVMManagedDisk' }
+        @{ Command = 'Undo-AzKeyVaultSecretRemoval' }
+    ) {
+        $p = New-Fixture "miss-$Command.ps1" "param([switch]`$DryRun)`n$Command -Name x"
+        $r = @(Find-UnguardedMutation -Path $p)
+        $r.Count | Should -Be 1
+        $r[0].Command | Should -Be $Command
+    }
+
+    It 'does not report a read-only verb outside the guard' {
+        $p = New-Fixture 'read.ps1' "param([switch]`$DryRun)`nGet-AzResource -ResourceGroupName rg`nTest-AzResourceGroupDeployment -ResourceGroupName rg -TemplateFile t.json"
+        @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
+    }
+
+    It 'still accepts an unlisted verb inside the guard' {
+        $p = New-Fixture 'guarded-copy.ps1' "param([switch]`$DryRun)`nif (-not `$DryRun) { Copy-AzStorageBlob -Name x }"
+        @(Find-UnguardedMutation -Path $p).Count | Should -Be 0
+    }
+}
