@@ -3,8 +3,8 @@
 A script with a `-DryRun` switch looks safe to try. But the switch only guards the calls its author
 remembered to put behind it. One call outside the guard changes real state on every "dry" run.
 
-The rule: a dry-run switch is a declaration. The stronger check is a dry run under a Reader-only identity, with no
-write operations in the Activity Log. This demo shows only the fast pre-check, a syntax-tree test over the calls.
+The rule: a dry-run switch is a declaration. The stronger check is a dry run followed by a look at the write
+operations in the Activity Log. This demo shows only the fast pre-check, a syntax-tree test over the calls.
 
 ## What each check settles
 
@@ -12,15 +12,17 @@ write operations in the Activity Log. This demo shows only the fast pre-check, a
 | --- | --- | --- |
 | `-DryRun` switch | nothing: it reports the author's intent | which calls actually sit behind it |
 | Syntax-tree test (this demo) | that no listed Az call of a non-read-only verb sits outside a recognised guard in this file | that the script is safe: it sees only the calls and conditions it recognises, and never runs the script |
-| Reader-only dry run with the Activity Log (not shown) | what that one run wrote under that input | what other inputs or branches would do |
+| Dry run, then the Activity Log (not shown on stage) | what that one run wrote under that input | what other inputs or branches would do |
 
 The analyser finds specific calls and conditions; it does not by itself show the safety of a whole script.
 
 ## Results
 
 Offline, no Azure call. **Observed 2026-11-03** (code at `1992109`, recorded in PR #2): red on `Deploy-Example.ps1`,
-green on `Deploy-Example.Fixed.ps1`. The Reader-only Activity Log check has **not been run**; it is expected to
-show no write operations for a correct dry run.
+green on `Deploy-Example.Fixed.ps1`. **Observed 2026-11-03** in the demo subscription, each script run alone with
+`-DryRun` under an account that can write: `Deploy-Example.ps1` left one write operation in the Activity Log
+(`Microsoft.Insights/register/action`, two entries of one correlation id); `Deploy-Example.Fixed.ps1` left none.
+Not tested: the same run under a Reader-only identity, where Azure would refuse the write.
 
 ## On stage
 

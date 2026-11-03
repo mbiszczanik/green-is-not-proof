@@ -9,6 +9,21 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-03, demo subscription, rule 3 (Activity Log after a dry run), code at `b3896c0`
+
+Run by the author's agent session from 22:17 to 22:28 UTC with the author's own account, which can write (not Reader-only).
+Both demo 2 example scripts were run for real with `-DryRun`; the only call outside the guard is
+`Register-AzResourceProvider -ProviderNamespace Microsoft.Insights` (already `Registered`, so nothing changed).
+
+| Step | Observed |
+| --- | --- |
+| Both scripts back to back, then `Get-AzActivityLog -Caller <account>` filtered to `Authorization.Action -notlike '*/read'` | 2 entries of `Microsoft.Insights/register/action` (one correlation id), stamped about 6 s after the scripts ended: attribution unclear |
+| `Deploy-Example.Fixed.ps1 -DryRun` alone, log queried 4 min later | 0 write operations |
+| `Deploy-Example.ps1 -DryRun` alone, log queried 4 min later | 2 write entries of `Microsoft.Insights/register/action`, one correlation id |
+
+`OperationName` was empty on the entries; `Authorization.Action` carried the operation. Entries appeared within
+4 minutes after the run; a query right after the run was not tried.
+
 ### 2026-11-03, test subscription, `swedencentral`, run `202611032044`, code at `c4b2d8b` plus demos 4 and 5
 
 Run by the author's agent session from 19:43 to 19:54 UTC. Demo 4 ran locally; the rest in Azure.
@@ -43,7 +58,7 @@ rogue VM from a separate script, the teardown with read-back.
 | `scripts/Stop-DemoRun.ps1` | exit 0; `Listed again: no diagnostic settings remain on 11 resource(s) and sub-service(s)`; the schedule resource printed `No diagnostic settings supported` and did not stop the teardown; final line: "Resource group rg-gnp-202611031935 gone; no resources tagged runId=202611031935 in the subscription. Not covered: untagged resources outside the group."; `out/demo_key` and `out/demo_key.pub` deleted |
 | After teardown | `rg-gnp*` groups in the subscription: 0; resources tagged `project=green-is-not-proof`: 0 |
 
-Not covered by this run: the Reader-only dry run with the Activity Log (rule 3), a teardown that fails the
+Not covered by this run: the dry run with the Activity Log (rule 3, see the block above), a teardown that fails the
 read-back, a deployment whose record is missing, and any region other than `swedencentral`.
 
 ### 2026-11-03, test subscription, `swedencentral`, run `202611031445`, code at `1992109`
@@ -67,6 +82,6 @@ names with a hand-written list. Both have since been replaced; kept for history.
 | --- | --- |
 | Demo 2 on-stage suite, current code | red on `Deploy-Example.ps1`, green on the fixed script (last observed at `1992109`, before the verb allow list) |
 | Cheat sheet rule 1 command as written | lists the same resources as the ownership audit |
-| Cheat sheet rule 3 command (Reader-only dry run, Activity Log) | no write operations for a correct dry run; the command is a sketch and has not been run |
+| Rule 3 under a Reader-only identity | Azure refuses the write and the log records the refused attempt; not tested |
 | Backup recordings of the on-stage demos | not made |
 | A run in the hours before each delivery | add a dated block above |

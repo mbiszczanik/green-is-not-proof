@@ -27,9 +27,8 @@ source independent of the thing being checked, and settles one specific question
    resources the deployment did not touch; it does not say who created a listed one.
 2. A successful delete is a declaration. Stronger check: listing the non-cascaded child resources, read back after
    the delete. It settles the child types you list.
-3. A dry-run switch is a declaration. Stronger check: a dry run under a Reader-only identity, with no write
-   operations in the Activity Log. The syntax-tree test is a fast pre-check that finds specific calls; it does not
-   show that a whole script is safe.
+3. A dry-run switch is a declaration. Stronger check: a dry run, then the write operations in the Activity Log.
+   The syntax-tree test is a fast pre-check that finds specific calls; it does not show that a whole script is safe.
 4. A stubbed test is a declaration. Stronger check: the same assertion against one live read of the real resource.
    The stubbed test still checks your program's logic; the live read shows what the service returned for that
    resource, then.
@@ -41,8 +40,9 @@ Each rule has a command and its limits in the [cheat sheet](docs/cheat-sheet.md)
 The current setup, demos 0, 1, 3 and 5 and the teardown with read-back were observed live on 2026-11-03
 (swedencentral, runs `202611031935` and `202611032044`, every step exit 0 except the ownership audit, which exits 1
 by design; afterwards no resource group or tagged resource was left). Demo 4 ran locally (no Azure) and demo 2 is
-offline by design. Not yet observed: the Reader-only dry run behind rule 3 and the cheat sheet commands for rules 1
-and 3. The backup recordings are still to be made.
+offline by design. The Activity Log check behind rule 3 was observed on 2026-11-03 under a write-capable
+account (Reader-only not tested). Not yet observed: the cheat sheet command for rule 1. The backup recordings are
+still to be made.
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a

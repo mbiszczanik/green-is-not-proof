@@ -35,13 +35,21 @@ their own listing.
 
 ## 3. A dry-run switch is a declaration
 
-Stronger check: a dry run under a Reader-only identity, with no write operations in the Activity Log.
+Stronger check: run the dry run, then list the write operations the Activity Log recorded for the caller. Under a
+Reader-only identity Azure also refuses the write; under a wider identity the write happens and the log only shows it.
 
 ```powershell
-Get-AzActivityLog -StartTime $start -Caller $readerId | Where-Object { $_.Authorization.Action -notlike '*/read' }
+Get-AzActivityLog -StartTime $start -Caller $caller |
+    Where-Object { $_.Authorization.Action -notlike '*/read' } |
+    ForEach-Object { $_.Authorization.Action }
 ```
 
-*Sketch.* The syntax-tree test (`[System.Management.Automation.Language.Parser]::ParseFile`) is a fast pre-check: it
+Observed 2026-11-03 (demo subscription, an account that can write, not Reader-only): the demo 2 example with
+`-DryRun` left two entries of one operation, `Microsoft.Insights/register/action`; the fixed example left none. Allow
+a few minutes for the log, start the window a few seconds before the run, and filter on `Authorization.Action`
+(`OperationName` came back empty). The Reader-only refusal was not tested.
+
+The syntax-tree test (`[System.Management.Automation.Language.Parser]::ParseFile`) is a fast pre-check: it
 finds specific Az calls outside the guard. It does not settle that the whole script is safe, and it does not see az
 CLI or REST calls. The Activity Log shows what one run did under one input.
 
