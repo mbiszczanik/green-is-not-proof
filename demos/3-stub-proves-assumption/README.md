@@ -3,7 +3,8 @@
 A strict health check passes its test, because the test feeds it a hand-written stub object with the
 demanded property filled in. The real resource may not return that property.
 
-Off stage: the talk's core uses the gate demo instead (see issue #3). This demo stays as reference material.
+Off stage: the talk's core uses [demo 4, the gate demo](../4-gate-never-red/README.md) instead (see issue #3). This demo
+stays as reference material.
 
 The rule: a stubbed test is a declaration of what you believe the API returns. The stronger check is the same
 assertion against one live read of the real resource.

@@ -5,7 +5,10 @@ BeforeAll {
 
 Describe 'script exit codes' {
     It 'no script ends with SetShouldExit, which would close an interactive terminal' {
-        $files = Get-ChildItem -Path (Join-Path $script:Root 'scripts'), (Join-Path $script:Root 'demos'), (Join-Path $script:Root 'tools') -Recurse -Filter *.ps1
+        # One exemption: the demo 4 validator is only ever run in a child process by Invoke-Gate.ps1, and SetShouldExit is the fix that demo shows.
+        $exempt = [IO.Path]::GetFullPath((Join-Path $script:Root 'demos/4-gate-never-red/Test-Lab.Fixed.ps1'))
+        $files = Get-ChildItem -Path (Join-Path $script:Root 'scripts'), (Join-Path $script:Root 'demos'), (Join-Path $script:Root 'tools') -Recurse -Filter *.ps1 |
+            Where-Object { [IO.Path]::GetFullPath($_.FullName) -ne $exempt }
         $hits = @($files | Select-String -Pattern 'SetShouldExit' | ForEach-Object { "$($_.Path):$($_.LineNumber)" })
         $hits | Should -BeNullOrEmpty
     }

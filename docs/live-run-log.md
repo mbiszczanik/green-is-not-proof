@@ -9,6 +9,23 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-03, test subscription, `swedencentral`, run `202611032044`, code at `c4b2d8b` plus demos 4 and 5
+
+Run by the author's agent session from 19:43 to 19:54 UTC. Demo 4 ran locally; the rest in Azure.
+
+| Step | Observed |
+| --- | --- |
+| Demo 4, `Invoke-Gate.ps1 -Script Silent -State Empty` | runner exit 0; 2 failure lines; `Process exit code: 0`; "The gate would PASS although the output shows a failure." |
+| Demo 4, `-Script Counted -State Empty` | runner exit 0; the child printed 2 failure lines and "Validation complete: 2 failed.", yet `Process exit code: 0` (PowerShell 7.6.9 drops `exit 1` under `#Requires -Modules`) |
+| Demo 4, `-Script Fixed -State Empty` / `-State Ok` | runner exit 1 with 2 failure lines / runner exit 0 with 0 failure lines |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | exit 0, exit 0; cost guard 0.293758 EUR |
+| Demo 0, `Invoke-OwnershipAudit.ps1` | exit 1; 4 rows (VM, NIC, disk, schedule) |
+| Demo 5, `New-FailedExtension.ps1` | exit 0 after 37 s; Azure returned `VMExtensionProvisioningError`; extension reached `Failed` |
+| Demo 5, `Show-ExistenceVsState.ps1` | exit 0; `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)` |
+| Demo 0 audits after the extension | tag audit exit 0 with 7 resources (the extension has no tag); ownership audit exit 1 with 5 rows, including `Microsoft.Compute/virtualMachines/extensions` |
+| `Stop-DemoRun.ps1` | exit 0; the extension and the schedule printed `No diagnostic settings supported` and did not stop the teardown; `Removed 1 diagnostic setting(s)` (`diag-to-log`); `Listed again: no diagnostic settings remain on 12 resource(s) and sub-service(s)`; `out/demo_key*` deleted |
+| After teardown | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
 ### 2026-11-03, test subscription, `swedencentral`, run `202611031935`, code at `15907c2`
 
 Run by the author's agent session from 18:35 to 18:44 UTC, one run from setup to teardown, every command as

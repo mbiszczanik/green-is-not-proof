@@ -1,0 +1,4 @@
+{
+  "resourceGroups": ["lab-rg"],
+  "locks": ["lock-no-delete"]
+}
