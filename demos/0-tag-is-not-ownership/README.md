@@ -32,10 +32,11 @@ flag it too.
 - **Observed 2026-11-03**, earlier setup (the audit compared names with a hand-written list, code at `1992109`,
   recorded in PR #2): tag audit exit 0 with 6 resources; ownership audit exit 1, listing `vm-traffic`,
   `vm-traffic-nic` and its OS disk.
-- **Expected, not yet observed in the current setup** (deployment record, separate rogue-VM script): the output
-  shown below. Record the new run in [docs/live-run-log.md](../../docs/live-run-log.md) before presenting. The run
-  also has to confirm that the target resources of the deployment operations are the resource ids the comparison
-  expects.
+- **Observed 2026-11-03**, current setup (run `202611031935`, code at `15907c2`, see
+  [docs/live-run-log.md](../../docs/live-run-log.md)): tag audit exit 0 with 7 resources; ownership audit exit 1,
+  listing `vm-traffic`, `vm-traffic-nic`, the OS disk and the shutdown schedule. The target resources of the
+  deployment operations were the resource ids the comparison expects.
+- Run it again before each delivery and add a dated block to the log.
 
 ## On-stage sequence
 
@@ -74,7 +75,7 @@ flag it too.
    ----                         ------------                     --
    vm-traffic                   Microsoft.Compute/virtualMachines /subscriptions/<sub>/resourceGroups/rg-gnp-.../vm-traffic
    vm-traffic-nic               Microsoft.Network/networkInterfaces ...
-   vm-traffic_OsDisk_1_<hex>    Microsoft.Compute/disks          ...
+   vm-traffic_disk1_<hex>      Microsoft.Compute/disks          ...
    shutdown-computevm-vm-traffic Microsoft.DevTestLab/schedules  ...
    ```
 

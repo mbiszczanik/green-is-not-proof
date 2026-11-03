@@ -38,14 +38,15 @@ Each rule has a command and its limits in the [cheat sheet](docs/cheat-sheet.md)
 
 ## Status
 
-Demos 1 and 3 and the teardown were observed live once on 2026-11-03 (swedencentral, one run, teardown exit 0,
-nothing left), with the earlier setup script. Setup and demo 0 were reworked since (a Bicep deployment and a
-separate rogue-VM script): their new form, and the teardown read-back, are **expected** to work as described and
-have **not been observed**. Demo 2 is offline by design. The backup recordings are still to be made.
+The current setup, demos 0, 1 and 3 and the teardown with read-back were observed live once on 2026-11-03
+(swedencentral, run `202611031935`, every step exit 0 except the ownership audit, which exits 1 by design;
+afterwards no resource group or tagged resource was left). Demo 2 is offline by design. Not yet observed: the
+Reader-only dry run behind rule 3 and the cheat sheet commands for rules 1 and 3. The backup recordings are still
+to be made.
 
-Before presenting, run the whole sequence once and record the result in [docs/live-run-log.md](docs/live-run-log.md):
-what was observed, when, with which command and exit code. Until a line says "observed", read the demo READMEs'
-output as expected results.
+Before each delivery, run the whole sequence once and add a dated block to
+[docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a
+line there says "observed", read the demo READMEs' output as expected results.
 
 ## Prerequisites
 

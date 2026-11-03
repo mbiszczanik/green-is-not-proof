@@ -36,9 +36,9 @@ The point lands at step 4: the delete was green, and the old setting is still li
 at `1992109`, recorded in PR #2): step 4 printed `Diagnostic settings on the NEW account: diag-to-log`, and step 5
 removed it.
 
-**Expected, not yet observed in the current setup** (the account and the setting now come from
-`infra/declared.bicep`): the same output. Record the new run in [docs/live-run-log.md](../../docs/live-run-log.md)
-before presenting.
+**Observed 2026-11-03**, current setup (the account and the setting come from `infra/declared.bicep`, run
+`202611031935`, code at `15907c2`): the same output, every step exit 0. See
+[docs/live-run-log.md](../../docs/live-run-log.md). Run it again before each delivery.
 
 ## If you stop after step 2
 

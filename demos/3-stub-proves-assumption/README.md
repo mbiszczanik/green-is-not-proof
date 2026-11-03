@@ -34,8 +34,9 @@ hand-written objects, and one live run showed the fields were empty.
 
 - **Observed 2026-11-03**, on a workspace from the earlier setup (code at `1992109`, recorded in PR #2): the property
   was empty, so strict health was `False`.
-- **Expected, not yet observed in the current setup** (the workspace is now deployed from `infra/declared.bicep`):
-  the same output. Record the new run in [docs/live-run-log.md](../../docs/live-run-log.md) before presenting.
+- **Observed 2026-11-03**, current setup (workspace deployed from `infra/declared.bicep`, run `202611031935`, code at
+  `15907c2`, exit 0): `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False`.
+  See [docs/live-run-log.md](../../docs/live-run-log.md). Run it again before each delivery.
 
 ## On stage
 

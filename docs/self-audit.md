@@ -95,5 +95,6 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 
 ## Still open
 
-Live runs of the reworked setup, demo 0, teardown read-back and auto-shutdown, and the replacement of demo 3 by a
-gate demo, are tracked in #3 and #4.
+The reworked setup, demo 0, demo 1, demo 3 and the teardown read-back ran live once on 2026-11-03 (see
+[live-run-log.md](live-run-log.md)). Still open and tracked in #3 and #4: the gate demo that replaces demo 3 on
+stage, the module A demo, the Reader-only dry run behind rule 3, and the backup recordings.
