@@ -15,9 +15,8 @@ Each rule has a command and a sentence in the [cheat sheet](docs/cheat-sheet.md)
 
 ## Status
 
-Live verification pending. The demos are unit-tested offline and the tests run in CI, but they have not
-yet been run against Azure. Demo 3's property is a candidate to confirm in a live read. No live result is
-recorded in this repository.
+Demos 0, 1 and 3 and the setup and teardown scripts ran live once on 2026-11-03 (swedencentral, one run,
+teardown exit 0, nothing left). Demo 2 is offline by design. The backup recordings are still to be made.
 
 ## Prerequisites
 
@@ -70,16 +69,20 @@ Teardown leaves it on purpose: it is shared, and nothing in it is tagged with th
 ## Cost
 
 The cost guard in `lib/CostGuard.ps1` prices the run from the Azure Retail Prices API before anything is
-created, and refuses to continue above the per-run limit of 2 EUR. Its live estimate on 2026-10-31 for
+created, and refuses to continue above the per-run limit of 2 EUR. Its live estimate on 2026-11-03 for
 `swedencentral` and 2 hours:
 
 | Item | Approx. EUR |
 | --- | --- |
-| VM Standard_B1s | 0.02 |
+| VM Standard_B2ts_v2 | 0.02 |
 | OS disk E4 | 0.01 |
 | Storage | 0.00 |
-| Log Analytics, 0.1 GB | 0.26 |
-| Total | 0.28794 |
+| Log Analytics, 0.1 GB | 0.27 |
+| Total | 0.29376 |
+
+Standard_B1s had a capacity restriction in `swedencentral` and `northeurope` on 2026-11-03, and
+`Standard_B2ats_v2` failed allocation, so the rogue VM is a `Standard_B2ts_v2`. Change the size in
+`scripts/Start-DemoRun.ps1` and `config/demo-resources.psd1` together if it is restricted too.
 
 The Log Analytics figure ignores the free 5 GB tier on purpose (conservative). Prices change; the guard reads them again on every run.
 

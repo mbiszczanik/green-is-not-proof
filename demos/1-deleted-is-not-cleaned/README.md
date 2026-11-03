@@ -24,8 +24,8 @@ Each step prints one masked line.
 
 The point lands at step 4: the delete was green, and the old setting is still listed on the new account.
 
-Live result: not yet recorded. Until a live run confirms it, treat step 4 as the
-expected outcome, not a recorded one.
+Live result, 2026-11-03: step 4 printed `Diagnostic settings on the NEW account: diag-to-log`, and
+step 5 removed it.
 
 ## If you stop after step 2
 

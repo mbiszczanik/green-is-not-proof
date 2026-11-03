@@ -4,7 +4,7 @@ Builds one demo run's Azure resources after the cost guard approves it, and writ
 .DESCRIPTION
 Order: Az context check, cost guard (2 hours, limit 2 EUR), resource group, Log Analytics workspace,
 storage account with a blob diagnostic setting, VNet with subnet snet-app, then the rogue VM
-(vm-traffic, Standard_B1s, Ubuntu 22.04, no public IP, SSH key generated into out/). The VM uses a
+(vm-traffic, Standard_B2ts_v2, Ubuntu 22.04, no public IP, SSH key generated into out/). The VM uses a
 New-AzVMConfig chain so the key and image are explicit. It is absent from config/demo-manifest.psd1.
 run.json holds raw ids (out/ is gitignored); console output masks the subscription id.
 The current subscription must match GNP_SUBSCRIPTION_ID or ~/.config/green-is-not-proof/subscription.txt,
@@ -108,10 +108,11 @@ function Invoke-StartDemoRun {
         $secret = [securestring]::new()
         foreach ($c in ([guid]::NewGuid().ToString('N') + 'Aa1!').ToCharArray()) { $secret.AppendChar($c) }
         $cred = [pscredential]::new('demoadmin', $secret)
-        $vm = New-AzVMConfig -VMName $vmName -VMSize 'Standard_B1s'
+        $vm = New-AzVMConfig -VMName $vmName -VMSize 'Standard_B2ts_v2'
         $vm = Set-AzVMOperatingSystem -VM $vm -Linux -ComputerName $vmName -Credential $cred -DisablePasswordAuthentication
         $vm = Add-AzVMSshPublicKey -VM $vm -KeyData $pubKey -Path '/home/demoadmin/.ssh/authorized_keys'
         $vm = Set-AzVMSourceImage -VM $vm -PublisherName 'Canonical' -Offer '0001-com-ubuntu-server-jammy' -Skus '22_04-lts-gen2' -Version 'latest'
+        $vm = Set-AzVMBootDiagnostic -VM $vm -Disable
         $vm = Add-AzVMNetworkInterface -VM $vm -Id $nic.Id
         $vm = Set-AzVMOSDisk -VM $vm -CreateOption FromImage -StorageAccountType StandardSSD_LRS
         $null = New-AzVM -ResourceGroupName $rg -Location $Location -VM $vm -Tag $tag

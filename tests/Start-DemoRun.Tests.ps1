@@ -15,6 +15,7 @@ BeforeAll {
         'Set-AzVMOperatingSystem'                  = 'param($VM, [switch]$Linux, $ComputerName, $Credential, [switch]$DisablePasswordAuthentication)'
         'Add-AzVMSshPublicKey'                     = 'param($VM, $KeyData, $Path)'
         'Set-AzVMSourceImage'                      = 'param($VM, $PublisherName, $Offer, $Skus, $Version)'
+        'Set-AzVMBootDiagnostic'                   = 'param($VM, [switch]$Disable)'
         'Add-AzVMNetworkInterface'                 = 'param($VM, $Id)'
         'Set-AzVMOSDisk'                           = 'param($VM, $CreateOption, $StorageAccountType)'
         'New-AzVM'                                 = 'param($ResourceGroupName, $Location, $VM, $Tag)'
@@ -46,6 +47,7 @@ BeforeAll {
         Mock Set-AzVMOperatingSystem { $script:Calls.Add(@{ Cmd = 'Set-AzVMOperatingSystem' }); $VM }
         Mock Add-AzVMSshPublicKey { $script:Calls.Add(@{ Cmd = 'Add-AzVMSshPublicKey' }); $VM }
         Mock Set-AzVMSourceImage { $script:Calls.Add(@{ Cmd = 'Set-AzVMSourceImage' }); $VM }
+        Mock Set-AzVMBootDiagnostic { $script:Calls.Add(@{ Cmd = 'Set-AzVMBootDiagnostic' }); $VM }
         Mock Add-AzVMNetworkInterface { $script:Calls.Add(@{ Cmd = 'Add-AzVMNetworkInterface' }); $VM }
         Mock Set-AzVMOSDisk { $script:Calls.Add(@{ Cmd = 'Set-AzVMOSDisk' }); $VM }
         Mock New-AzVM { $script:Calls.Add(@{ Cmd = 'New-AzVM'; Tag = $Tag }) }
@@ -67,7 +69,7 @@ Describe 'Invoke-StartDemoRun' {
 
     It 'passes the documented values to the Az cmdlets' {
         $null = Invoke-StartDemoRun -RunId '202611181805' -Location swedencentral -OutDir $script:out 6>&1
-        Should -Invoke New-AzVMConfig -Times 1 -Exactly -ParameterFilter { $VMSize -eq 'Standard_B1s' -and $VMName -eq 'vm-traffic' }
+        Should -Invoke New-AzVMConfig -Times 1 -Exactly -ParameterFilter { $VMSize -eq 'Standard_B2ts_v2' -and $VMName -eq 'vm-traffic' }
         Should -Invoke Set-AzVMSourceImage -Times 1 -Exactly -ParameterFilter { $Offer -eq '0001-com-ubuntu-server-jammy' -and $Skus -eq '22_04-lts-gen2' -and $PublisherName -eq 'Canonical' }
         Should -Invoke Set-AzVMOperatingSystem -Times 1 -Exactly -ParameterFilter { $DisablePasswordAuthentication -and $Linux }
         Should -Invoke New-AzVirtualNetworkSubnetConfig -Times 1 -Exactly -ParameterFilter { $Name -eq 'snet-app' }

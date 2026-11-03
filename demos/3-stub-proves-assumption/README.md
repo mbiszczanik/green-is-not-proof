@@ -5,8 +5,8 @@ demanded property filled in. The real resource may never return that property.
 
 The rule: a stubbed test is a declaration of what you believe the API returns; one live read is proof.
 
-Candidate property: `PrivateLinkScopedResources`. Not yet confirmed by a live read; if it is populated
-live, swap it for one that is not.
+Candidate property: `PrivateLinkScopedResources`. Confirmed by a live read on 2026-11-03: the property is
+empty on a fresh workspace, so strict health is `False` and lenient health is `True`.
 
 I chose it from the documented `PSWorkspace` output type of `Get-AzOperationalInsightsWorkspace`
 (<https://learn.microsoft.com/en-us/dotnet/api/microsoft.azure.commands.operationalinsights.models.psworkspace>).

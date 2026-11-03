@@ -35,7 +35,7 @@ function Get-DemoTag {
     [CmdletBinding()]
     [OutputType([hashtable])]
     param([Parameter(Mandatory)][string]$RunId)
-    @{ project = 'green-is-not-proof'; runId = $RunId }
+    @{ project = 'green-is-not-proof'; runId = $RunId; Environment = 'Development' }
 }
 
 function Get-DemoExpectedSubscriptionId {

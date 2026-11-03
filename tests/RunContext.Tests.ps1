@@ -12,6 +12,7 @@ Describe 'RunContext' {
     It 'tags carry project and runId' {
         $t = Get-DemoTag -RunId '202611181805'
         $t.project | Should -Be 'green-is-not-proof'
+        $t.Environment | Should -Be 'Development'
         $t.runId | Should -Be '202611181805'
     }
 }
