@@ -38,11 +38,11 @@ Each rule has a command and its limits in the [cheat sheet](docs/cheat-sheet.md)
 
 ## Status
 
-The current setup, demos 0, 1 and 3 and the teardown with read-back were observed live once on 2026-11-03
-(swedencentral, run `202611031935`, every step exit 0 except the ownership audit, which exits 1 by design;
-afterwards no resource group or tagged resource was left). Demo 2 is offline by design. Not yet observed: the
-Reader-only dry run behind rule 3 and the cheat sheet commands for rules 1 and 3. The backup recordings are still
-to be made.
+The current setup, demos 0, 1, 3 and 5 and the teardown with read-back were observed live on 2026-11-03
+(swedencentral, runs `202611031935` and `202611032044`, every step exit 0 except the ownership audit, which exits 1
+by design; afterwards no resource group or tagged resource was left). Demo 4 ran locally (no Azure) and demo 2 is
+offline by design. Not yet observed: the Reader-only dry run behind rule 3 and the cheat sheet commands for rules 1
+and 3. The backup recordings are still to be made.
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a
@@ -90,8 +90,12 @@ Then run the demos in order. Each has its own README with the on-stage steps:
 
 1. [Demo 0: a tag is not proof of ownership](demos/0-tag-is-not-ownership/README.md)
 2. [Demo 1: deleted is not cleaned up](demos/1-deleted-is-not-cleaned/README.md)
-3. [Demo 2: dry-run is not safe](demos/2-dry-run-is-not-safe/README.md)
-4. [Demo 3: a stubbed test checks only your assumption](demos/3-stub-proves-assumption/README.md)
+3. [Demo 2: dry-run is not safe](demos/2-dry-run-is-not-safe/README.md) (offline)
+4. [Demo 3: a stubbed test checks only your assumption](demos/3-stub-proves-assumption/README.md) (reference material,
+   off stage)
+5. [Demo 4: a gate you never saw red](demos/4-gate-never-red/README.md) (local, no Azure; the talk's core, act 2)
+6. [Demo 5: existing is not working](demos/5-exists-is-not-healthy/README.md) (module A; run
+   `./demos/5-exists-is-not-healthy/New-FailedExtension.ps1` after demo 0 and before the talk)
 
 Tear everything down and read back what is left:
 
