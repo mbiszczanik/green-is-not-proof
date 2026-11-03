@@ -1,0 +1,23 @@
+#!/bin/sh
+# Enable with: git config core.hooksPath .githooks
+# Checks the working tree and every commit about to be pushed (messages and added or changed files).
+refs=$(cat)
+tmp=$(mktemp) || exit 1
+trap 'rm -f "$tmp"' EXIT
+git ls-files -z > "$tmp" || exit 1
+[ -s "$tmp" ] || { echo "public-content: git ls-files listed nothing" >&2; exit 1; }
+status=0
+xargs -0 pwsh -NoProfile -File tools/Test-PublicContent.ps1 < "$tmp" || status=1
+zero=0000000000000000000000000000000000000000
+# stdin lines: <local ref> <local sha> <remote ref> <remote sha>
+printf '%s\n' "$refs" | while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "$local_sha" ] || continue
+    [ "$local_sha" = "$zero" ] && continue
+    if [ "$remote_sha" = "$zero" ]; then
+        range="$local_sha --not --remotes"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+    pwsh -NoProfile -File tools/Test-PublicContent.ps1 -CommitRange "$range" || exit 1
+done || status=1
+exit $status
