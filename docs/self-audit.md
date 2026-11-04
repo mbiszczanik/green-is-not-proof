@@ -32,8 +32,8 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 - Green: "a syntax-tree test over every call is proof"; "one live read is proof".
 - Evidence: a syntax-tree test shows where calls sit, not that nothing changed; neither rule named an independent
   source.
-- Fix: every rule names its stronger check and what it does not settle. The dry-run check is a run under a
-  Reader-only identity with no write operations in the Activity Log; the syntax-tree test is a fast pre-check that
+- Fix: every rule names its stronger check and what it does not settle. The dry-run check is a run followed
+  by the write operations in the Activity Log; the syntax-tree test is a fast pre-check that
   finds specific calls and does not show a whole script is safe.
 
 ## Demo 3 accepted a missing state as success
@@ -97,5 +97,6 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 
 The reworked setup, demo 0, demo 1, demo 3 and the teardown read-back ran live once on 2026-11-03 (see
 [live-run-log.md](live-run-log.md)). The gate demo that replaces demo 3 on stage (demo 4) and the module A demo
-(demo 5) were added afterwards. Still open and tracked in #3 and #4: the Reader-only dry run behind rule 3 and the
-backup recordings.
+(demo 5) were added afterwards. The rule 3 Activity Log check was observed afterwards (write-capable
+account) and the Reader-only refusal was observed on 2026-11-04 (403, no log entry). Still open and tracked in #3
+and #4: the backup recordings.
