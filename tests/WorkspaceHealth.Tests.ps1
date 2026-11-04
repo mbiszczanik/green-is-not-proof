@@ -94,6 +94,13 @@ Describe 'Invoke-ShowLiveProperty' {
         ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'not the demo subscription'
         Should -Invoke Get-AzOperationalInsightsWorkspace -Times 0 -Exactly
     }
+    It 'treats a run.json from another run as no record and reads the requested run' {
+        Initialize-Mock (New-TestWorkspace)
+        Mock Get-DemoExpectedSubscriptionId { $script:Sub }
+        $res = Invoke-ShowLiveProperty -RunId '202611190000' -OutDir $script:out 6>&1
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 0
+        Should -Invoke Get-AzOperationalInsightsWorkspace -Times 1 -Exactly -ParameterFilter { $ResourceGroupName -eq 'rg-gnp-202611190000' -and $Name -eq 'log-gnp-202611190000' }
+    }
     It 'returns 1 without run.json and without -RunId' {
         Initialize-Mock (New-TestWorkspace)
         Remove-Item (Join-Path $script:out 'run.json')

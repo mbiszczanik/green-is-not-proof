@@ -244,6 +244,20 @@ Describe 'Invoke-StopDemoRun' {
         Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
     }
 
+    It 'without run.json it says it could not check for an orphaned setting, then goes on' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'vnet-gnp'; ResourceId = '/v'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 0
+        ($out | Out-String) | Should -Match 'Could not check for a diagnostic setting left by storage stgnp202611181805'
+        Should -Invoke Remove-AzResourceGroup -Times 1
+    }
+
+    It 'without run.json it stays silent about the check when the fixed-name account is in the group' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'stgnp202611181805'; ResourceId = '/s'; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        ($out | Out-String) | Should -Not -Match 'Could not check'
+    }
+
     It 'goes on when the run''s storage account is in the group' {
         @{ RunId = '202611181805'; SubscriptionId = $script:Sub; StorageAccountName = 'stgnp202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'STGNP202611181805'; ResourceId = '/s'; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }

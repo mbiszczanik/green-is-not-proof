@@ -1,3 +1,8 @@
+# Texts Azure returned for a type without diagnostic settings: ResourceTypeNotSupported (observed live for
+# microsoft.devtestlab/schedules). A bare BadRequest counts only when it also names diagnostic settings; the VM
+# extension text was not captured, so the teardown prints the raw message to record it.
+$script:UnsupportedDiagnosticPattern = 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest(?=[\s\S]*diagnostic)'
+
 function Get-DemoDiagnosticSettingName {
     <#
     .SYNOPSIS
@@ -12,7 +17,7 @@ function Get-DemoDiagnosticSettingName {
     param([Parameter(Mandatory)][string]$ResourceId)
     try { $settings = @(Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction Stop) }
     catch {
-        if ($_.Exception.Message -match 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest') { return @() }
+        if ($_.Exception.Message -match $script:UnsupportedDiagnosticPattern) { return @() }
         throw
     }
     @($settings | ForEach-Object { [string]$_.Name })
@@ -38,8 +43,8 @@ function Remove-DemoDiagnosticSetting {
         $settings = @(Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction Stop)
     }
     catch {
-        if ($_.Exception.Message -match 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest') {
-            Write-Host (ConvertTo-SafeText -Text "No diagnostic settings supported on $ResourceId" -SubscriptionId $SubscriptionId)
+        if ($_.Exception.Message -match $script:UnsupportedDiagnosticPattern) {
+            Write-Host (ConvertTo-SafeText -Text "No diagnostic settings supported on $ResourceId ($($_.Exception.Message))" -SubscriptionId $SubscriptionId)
             return 0
         }
         throw

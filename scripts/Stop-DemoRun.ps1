@@ -57,12 +57,16 @@ function Invoke-StopDemoRun {
 
         if (Test-DemoResourceGroup -Name $rg) {
             $inventory = @(Get-AzResource -ResourceGroupName $rg)
+            $present = @($inventory | Where-Object { $_.PSObject.Properties['ResourceType'] -and $_.PSObject.Properties['Name'] -and $_.ResourceType -eq 'Microsoft.Storage/storageAccounts' } | ForEach-Object { [string]$_.Name })
             if ($run -and $run.PSObject.Properties['StorageAccountName'] -and $run.StorageAccountName) {
-                $present = @($inventory | Where-Object { $_.ResourceType -eq 'Microsoft.Storage/storageAccounts' } | ForEach-Object { [string]$_.Name })
                 if ($run.StorageAccountName -notin $present) {
                     Write-Host "Storage $($run.StorageAccountName) from this run is missing; its diagnostic setting may survive. Run demo 1 -Step Recreate, then -Step Clean, then teardown again."
                     return 1
                 }
+            }
+            elseif ("stgnp$RunId" -notin $present) {
+                # No record of the account name, and the fixed name stgnp<RunId> is gone: a setting it left behind cannot be listed from here.
+                Write-Host "Could not check for a diagnostic setting left by storage stgnp$RunId (no run.json for this run, account not in the group). If demo 1 was interrupted, run its -Step Recreate and -Step Clean first."
             }
             $removed = 0
             $ids = foreach ($res in $inventory) {

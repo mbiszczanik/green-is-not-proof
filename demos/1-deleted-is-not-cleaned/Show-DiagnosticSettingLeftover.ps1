@@ -43,14 +43,16 @@ function Invoke-DiagnosticSettingLeftover {
         if (-not $ctx) { Write-Host 'Run Connect-AzAccount first'; return 1 }
         $sub = $ctx.Subscription.Id
 
-        $runFile = Join-Path $OutDir 'run.json'
-        if (-not (Test-Path $runFile) -and -not $RunId) { throw 'No -RunId given and no run.json found' }
-        $run = if (Test-Path $runFile) { Get-Content $runFile -Raw | ConvertFrom-Json } else { $null }
-        if (-not $RunId) { $RunId = $run.RunId }
+        if (-not $RunId) {
+            $latest = Read-DemoRun -OutDir $OutDir
+            if (-not $latest) { throw 'No -RunId given and no run.json found' }
+            $RunId = $latest.RunId
+        }
         if ($RunId -notmatch '^\d{12}$') { throw "RunId must be 12 digits (yyyyMMddHHmm), got '$RunId'" }
+        # A run.json from another run is no record of this one; the configured demo subscription pins it, as in teardown.
+        $run = Read-DemoRun -OutDir $OutDir -RunId $RunId
         $rg = Get-DemoResourceGroupName -RunId $RunId
         $name = "stgnp$RunId"
-        if ($run -and $run.RunId -ne $RunId) { throw "run.json holds run $($run.RunId), not $RunId" }
         Assert-DemoRunSubscription -Run $run -Current $sub
         $blobId = "/subscriptions/$sub/resourceGroups/$rg/providers/Microsoft.Storage/storageAccounts/$name/blobServices/default"
 
