@@ -44,15 +44,17 @@ No agent work. Evidence: a comment on each issue that records the decision.
 - [x] #1 (confirmed by the speaker): confirm or correct the speaker's statement for the five stories the "AI role per story" section marks as undocumented (#128, #252, #472, #109, #384).
 - [x] #1: SkyCraft #188 stays withdrawn (parked).
 - [x] #4: scheduled before Block 2; offline part in PR #17, comment on #4.
-- [ ] Say yes to the live run of Block 2 (cost about 0,29 EUR, demo subscription). The user wants it last, after PR #17 and the other preparation.
+- [x] Say yes to the live run of Block 2: given 2026-11-04, after PR #17 was prepared.
 
-## Block 2, D-12 to D-10: one live run of the whole on-stage sequence
+## Block 2, D-12 to D-10 (run early, 2026-11-04): one live run of the whole on-stage sequence
 
 Evidence: dated run, every command with its exit code taken from the process, counts, in `docs/live-run-log.md`.
 
-- [ ] Run 1 collects the gaps: setup, rogue VM, demo 0 audits, demo 1 five steps, demo 5 (also captures the VM extension error text for #4), local demos 2, 4 and 6, teardown with read-back.
-- [ ] One pull request for the first-class gaps; confirming run only if it changed code.
-- [ ] Record every other gap in the tracker with its class.
+- [x] Run 1 collected the gaps: setup, rogue VM, demos 0, 1, 3 and 5 and the teardown (run `202611041553`, output recorded, process exit codes not evidenced). It also found that an orphaned diagnostic setting cannot be listed while its account is gone.
+- [x] One pull request for the first-class gaps: PR #17, merged as `4c73f01` (teardown recreates a missing account, foreign `run.json`, narrower `BadRequest`); #4 closed by hand with the evidence.
+- [x] Confirming runs with real exit codes: runs `202611041652` (found the listing lag) and `202611041708` (teardown exit 0, `Removed 1`, 0 groups, 0 tagged resources); local demos 2, 4 and 6 on `4c73f01` (PR #18 records them).
+- [x] Every other gap recorded: the ownership audit group-name case stays as Azure spells it (decision recorded on #4).
+- [ ] Not yet run: the whole sequence in Azure on `4c73f01` as one run with process exit codes (demos 0, 1, 3, 5 plus the teardown). It belongs to Block 4's rehearsal and the final run of Block 5.
 
 ## Block 3, D-9 to D-6: decks and notes (not this repository)
 
@@ -69,7 +71,7 @@ Evidence: a dated block in `docs/live-run-log.md` from the author's run.
 
 - [ ] The author records demos 0, 1, 4, 5 and 6 and checks each frame for subscription id, tenant, account name and local path (#3).
 - [ ] One final live run shortly before delivery (#3).
-- [ ] The nine merged worktrees and branches are removed (needs the user's yes).
+- [ ] The merged worktrees and branches are removed (needs the user's yes; nine on 2026-11-04, now more with PRs #16 and #17).
 
 ## Block 6, D to D+1: close-out
 
@@ -83,15 +85,14 @@ Evidence: dated run, command, exit code; an offline test in CI.
 
 - [ ] Candidate 2 (PSRule): install `PSRule` and `PSRule.Rules.Azure`, run on the sample template, learn what `Assert-PSRule` does when an object is not processed; build the demo only if the result is a gap a gate would miss (#10).
 - [ ] Backup recording of demo 6 and of any candidate 2 demo, after an identifier check (#10).
-- [ ] The four follow-ups of #4, if the user scheduled them.
+- [x] The four follow-ups of #4: done in PR #17 and #4 closed (2026-11-04).
 
 ## Needs the user
 
-- Which session owns #1, and the three decisions about it (blocks the spec refresh).
-- A yes for the live run of Block 2 (blocks Block 2).
-- The schedule or parking of the #4 follow-ups.
+- Nothing from Block 1: decided 2026-11-04 (executor owns #1; goal stays two live Azure demos; five stories confirmed; #188 parked; #4 scheduled and closed; live run approved and done).
+- A decision on merging PR #18 (talk evidence index and the log blocks).
 - Rehearsal on the author's screen, the backup recordings and the decks (Blocks 3 to 5).
-- A yes to remove nine merged worktrees and their remote branches.
+- A yes to remove the merged worktrees and their remote branches.
 - Not in this repository: the repository secret `GNP_DENY_LIST` and the topics (not verified), the `azure` remote with an embedded credential in a local clone of the course repository (remove it and reset the publishing credentials), and the old revision of #10 in its edit history (delete it by hand).
 
 ## Risks
