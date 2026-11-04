@@ -9,6 +9,17 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, local, no Azure, demos 2, 4 and 6, code at `4c73f01` (main after PR #17)
+
+Each command as `pwsh -NoProfile -File <script>`, exit code from the process; demo 2 with `Invoke-Pester -CI`.
+
+| Step | Observed |
+| --- | --- |
+| Demo 4, `Invoke-Gate.ps1 -Script Silent -State Empty` and `-Script Counted -State Empty` | runner exit 0 each; `Process exit code: 0`; 2 failure lines each; "The gate would PASS although the output shows a failure." |
+| Demo 4, `-Script Fixed -State Empty` / `-State Ok` | runner exit 1 with `Process exit code: 1` and 2 failure lines / runner exit 0 with 0 failure lines |
+| Demo 6, `Invoke-Gate.ps1 -Gate Bare -Template Sample` / `-Gate Fixed -Template Sample` | runner exit 0, `Bare gate: PASS` with 1 diagnostic line / runner exit 1, `Fixed gate: FAIL` |
+| Demo 2, `Invoke-Pester ./demos/2-dry-run-is-not-safe -CI` | process exit 1: 1 passed (fixed script), 1 failed (`Deploy-Example.ps1`), as designed |
+
 ### 2026-11-04, demo subscription, `swedencentral`, runs `202611041652` and `202611041708`, branch of PR #17
 
 Each command as `pwsh -NoProfile -File <script>`, exit code from the process (these two runs are the evidence the block
