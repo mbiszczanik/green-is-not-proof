@@ -23,6 +23,7 @@ shall point here instead of copying results. A figure on a slide comes from a da
 | --- | --- | --- | --- |
 | Demo 0, a tag is not ownership | `Invoke-TagAudit.ps1`, `Invoke-OwnershipAudit.ps1` | 2026-11-04, run `202611041019`: ownership audit exit 1 with 4 rows (VM, network interface, disk, auto-shutdown schedule) | the tag audit exits 0 while the ownership audit exits 1 |
 | Demo 2, dry-run is not safe | `Invoke-Pester ./demos/2-dry-run-is-not-safe` | 2026-11-04, run `202611041019`: 1 failed on `Deploy-Example.ps1` (line 18), 1 passed on the fixed script | offline; no Azure call |
+| Teardown after an interrupted demo 1 | `Stop-DemoRun.ps1 -RunId <id>` after demo 1 `Delete`, with `run.json` moved away | 2026-11-04, run `202611041708`, exit 0: recreated the missing account empty, `Removed 1 diagnostic setting(s)`, nothing left afterwards | a setting can outlive its deleted account and cannot be listed while the account is gone, so the teardown finds it by recreating the account; it does not cover untagged resources outside the group |
 | Demo 6, a gate that reads only the exit code | `Invoke-Gate.ps1 -Gate Bare` and `-Gate Fixed` | 2026-11-04, local: `Bare` PASS with a diagnostic printed; `Fixed` FAIL | module C candidate; the client story stays in the private notes |
 
 ## Not yet observed
@@ -30,9 +31,7 @@ shall point here instead of copying results. A figure on a slide comes from a da
 These must not be presented as observed:
 
 - backup recordings of demos 0, 1, 4, 5 and 6 (due D-2, after an identifier check);
-- the full sequence on the code of the day of delivery (add a dated block to the log before each delivery);
-- a diagnostic setting orphaned by an interrupted demo 1 (tracked in #4);
-- teardown with `-RunId` and no `run.json` on the branch of PR #17, and the VM extension error text from the teardown.
+- the full sequence on the code of the day of delivery (add a dated block to the log before each delivery).
 
 ## Updating this page
 
