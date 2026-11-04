@@ -2,8 +2,8 @@
 
 A green check in Azure is a declaration, not evidence.
 
-Here you get runnable PowerShell demos that show a check passing while the thing it checks is broken, the
-independent read that catches each one, and a one-page [cheat sheet](docs/cheat-sheet.md).
+The PowerShell demos show checks that pass despite an underlying problem and ways to investigate their results.
+The [cheat sheet](docs/cheat-sheet.md) collects four rules and their limits.
 
 ## Talk
 
