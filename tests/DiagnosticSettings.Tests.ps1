@@ -42,14 +42,14 @@ Describe 'Remove-DemoDiagnosticSetting' {
         $n | Should -Be 2
     }
 
-    It 'treats <msg> as zero settings' -ForEach @(@{ msg = 'ResourceTypeNotSupported' }, @{ msg = 'BadRequest: diagnostic settings are not available' }) {
+    It 'treats <msg> as zero settings' -ForEach @(@{ msg = 'ResourceTypeNotSupported' }, @{ msg = '[ResourceTypeNotSupported] : The resource type ''microsoft.compute/virtualmachines/extensions'' does not support diagnostic settings.' }) {
         Mock Get-AzDiagnosticSetting { throw $msg }
         Mock Remove-AzDiagnosticSetting { }
         (Remove-DemoDiagnosticSetting -ResourceId '/r' 6>$null) | Should -Be 0
     }
 
-    It 'a BadRequest that does not name diagnostic settings throws' {
-        Mock Get-AzDiagnosticSetting { throw 'BadRequest: the request body is malformed' }
+    It 'a BadRequest throws, even one that mentions diagnostic settings' {
+        Mock Get-AzDiagnosticSetting { throw 'BadRequest: diagnostic settings payload is malformed' }
         Mock Remove-AzDiagnosticSetting { }
         { Remove-DemoDiagnosticSetting -ResourceId '/r' } | Should -Throw '*malformed*'
     }

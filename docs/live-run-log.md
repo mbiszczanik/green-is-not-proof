@@ -9,6 +9,33 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, demo subscription, `swedencentral`, run `202611041553`, branch of PR #17 (code at `2f04b4f`)
+
+Run from 15:53 to 15:58 UTC by one driver script (Azure PowerShell signed in with a token of the demo subscription,
+process scope, each script called in the same process). The exit codes the driver printed after the first ownership
+audit were stale values of the audit's exit 1, so they are not recorded here. This block records what the scripts
+printed; the process exit codes of this run are not evidenced. Process exit codes are in the 2026-11-03 blocks.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | completed; cost guard 0,293758 EUR; auto-shutdown at 17:54 UTC |
+| Demo 0, tag audit; ownership audit | "All 7 resources carry project tags: OK"; ownership audit listed 4 rows (disk, VM, schedule, network interface) |
+| Demo 1, `Show`, `Delete`, `Recreate`, `List`, `Clean` | `diag-to-log` shown; account deleted; recreated after one "name still held" retry; `Diagnostic settings on the NEW account: diag-to-log`; `Removed 1 diagnostic setting(s)` |
+| Demo 3, `Show-LiveProperty.ps1` | `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `New-FailedExtension.ps1` | `VMExtensionProvisioningError`, Azure error code 2 ("command terminated with exit status=1"); extension in `Failed` |
+| Demo 5, `Show-ExistenceVsState.ps1` | `Existence check: PASS`; `State check: FAIL (ProvisioningState: Failed)` |
+| Ownership audit after the extension | 5 rows, including `Microsoft.Compute/virtualMachines/extensions` |
+| `Stop-DemoRun.ps1 -RunId <id>` with `out/run.json` moved away | no `run.json` and the storage account present: no "could not check" line; `Removed 0 diagnostic setting(s)` (demo 1 `Clean` had removed it); listed again none on 12 resources; group deleted; final line printed; key pair deleted |
+| After teardown | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+Error texts for a type without diagnostic settings, both from `Get-AzDiagnosticSetting` and both matched by the
+teardown: `[ResourceTypeNotSupported] : The resource type 'microsoft.devtestlab/schedules' does not support diagnostic settings.` and
+`[ResourceTypeNotSupported] : The resource type 'microsoft.compute/virtualmachines/extensions' does not support diagnostic settings.`
+No run produced a `BadRequest`, so the teardown no longer matches it.
+
+Not covered: the "could not check" line (the storage account was present), a diagnostic setting orphaned by an
+interrupted demo 1, and process exit codes.
+
 ### 2026-11-04, local, no Azure, demo 6, code at `f5aae22` plus demo 6
 
 Run by the author with Bicep CLI 0.38.5 (`bicep lint`); every command as a child `pwsh -NoProfile -File` process, exit code from the process itself.

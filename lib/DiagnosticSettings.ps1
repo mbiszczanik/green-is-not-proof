@@ -1,7 +1,7 @@
-# Texts Azure returned for a type without diagnostic settings: ResourceTypeNotSupported (observed live for
-# microsoft.devtestlab/schedules). A bare BadRequest counts only when it also names diagnostic settings; the VM
-# extension text was not captured, so the teardown prints the raw message to record it.
-$script:UnsupportedDiagnosticPattern = 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest(?=[\s\S]*diagnostic)'
+# Observed live on 2026-11-04: both types without diagnostic settings (devtestlab schedules, VM extensions) returned
+# `[ResourceTypeNotSupported] : The resource type '...' does not support diagnostic settings.` A bare BadRequest is not
+# treated as "unsupported"; it throws, so a failed read never counts as no settings.
+$script:UnsupportedDiagnosticPattern = 'does not support diagnostic settings|ResourceTypeNotSupported'
 
 function Get-DemoDiagnosticSettingName {
     <#
