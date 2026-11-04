@@ -17,7 +17,11 @@ $declared = (Get-AzResourceGroupDeploymentOperation -ResourceGroupName $rg -Depl
 Get-AzResource -ResourceGroupName $rg | Where-Object ResourceId -notin $declared
 ```
 
-*Sketch.* It finds resources that the deployment did not touch. It does not settle who created a resource that is in
+Observed 2026-11-04 (demo subscription, a run with the rogue VM): run as written, the command returned the same four
+resources as the ownership audit of demo 0 (VM, network interface, disk, auto-shutdown schedule). The deployment's
+operation list held six entries, one of them empty, which `-notin` tolerates.
+
+It finds resources that the deployment did not touch. It does not settle who created a resource that is in
 the record: an incremental deployment can update a resource that already existed. A matching name or id is not
 proof of origin.
 
