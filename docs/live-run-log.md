@@ -9,6 +9,19 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, local, no Azure, demo 6, code at `f5aae22` plus demo 6
+
+Run by the author with Bicep CLI 0.38.5 (`bicep lint`); every command as a child `pwsh -NoProfile -File` process, exit code from the process itself.
+
+| Step | Observed |
+| --- | --- |
+| `Invoke-Gate.ps1 -Gate Bare -Template Sample` | runner exit 0; one `Warning no-unused-params` line; `Process exit code: 0`; `Bare gate: PASS`; "The gate would PASS although the output shows a diagnostic." |
+| `-Gate Fixed -Template Sample` | runner exit 1; the same warning line; `Process exit code: 0`; `Fixed gate: FAIL` |
+| `-Gate Bare -Template Clean` and `-Gate Fixed -Template Clean` | both runner exit 0; no diagnostic line; no extra line |
+| Linter output paths | printed as `.\Sample.bicep(3,7)`; no local path in the output |
+
+`az bicep lint --file` was also run on the same template (before the demo was written): it printed the warning with a `WARNING:` prefix and exited 0. The demo uses `bicep` when it is on the path and `az bicep` otherwise; only the `bicep` route was run through the demo scripts here.
+
 ### 2026-11-04, demo subscription, `swedencentral`, run `202611041019`, code at `31fc36f`
 
 Run by the author, about 09:17 to 09:30 UTC. The demo 2 suite is offline; the rest ran in Azure.
