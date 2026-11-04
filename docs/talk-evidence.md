@@ -22,9 +22,9 @@ shall point here instead of copying results. A figure on a slide comes from a da
 | Item | Command | Last observed | Note |
 | --- | --- | --- | --- |
 | Demo 0, a tag is not ownership | `Invoke-TagAudit.ps1`, `Invoke-OwnershipAudit.ps1` | 2026-11-04, run `202611041019`: ownership audit exit 1 with 4 rows (VM, network interface, disk, auto-shutdown schedule) | the tag audit exits 0 while the ownership audit exits 1 |
-| Demo 2, dry-run is not safe | `Invoke-Pester ./demos/2-dry-run-is-not-safe` | 2026-11-04, run `202611041019`: 1 failed on `Deploy-Example.ps1` (line 18), 1 passed on the fixed script | offline; no Azure call |
+| Demo 2, dry-run is not safe | `Invoke-Pester ./demos/2-dry-run-is-not-safe` | 2026-11-04, code at `4c73f01`: `-CI` exit 1; 1 failed on `Deploy-Example.ps1`, 1 passed on the fixed script | offline; no Azure call |
 | Teardown after an interrupted demo 1 | `Stop-DemoRun.ps1 -RunId <id>` after demo 1 `Delete`, with `run.json` moved away | 2026-11-04, run `202611041708`, exit 0: recreated the missing account empty, `Removed 1 diagnostic setting(s)`, nothing left afterwards | a setting can outlive its deleted account and cannot be listed while the account is gone, so the teardown finds it by recreating the account; it does not cover untagged resources outside the group |
-| Demo 6, a gate that reads only the exit code | `Invoke-Gate.ps1 -Gate Bare` and `-Gate Fixed` | 2026-11-04, local: `Bare` PASS with a diagnostic printed; `Fixed` FAIL | module C candidate; the client story stays in the private notes |
+| Demo 6, a gate that reads only the exit code | `Invoke-Gate.ps1 -Gate Bare` and `-Gate Fixed` | 2026-11-04, local, code at `4c73f01`: `Bare` runner exit 0 (PASS with a diagnostic printed); `Fixed` runner exit 1 (FAIL) | module C candidate; the client story stays in the private notes |
 
 ## Not yet observed
 
