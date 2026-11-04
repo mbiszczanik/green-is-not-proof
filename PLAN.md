@@ -34,17 +34,17 @@ No issue is fixed-and-stale: none can be closed now.
 
 - [x] Re-read #1, #3, #4, #10 and the open pull requests; classify each.
 - [x] Find nothing to close as stale.
-- [ ] Ask the user which session owns #1 (see "Needs the user").
+- [x] Ask the user which session owns #1: none, the executor owns it (2026-11-04).
 
 ## Block 1, D-14 to D-13: decisions (the user's)
 
 No agent work. Evidence: a comment on each issue that records the decision.
 
-- [ ] #1 open question: the goal stays "two live Azure demos" or becomes "two live demos, at least one in Azure".
-- [ ] #1: confirm or correct the speaker's statement for the five stories the "AI role per story" section marks as undocumented (#128, #252, #472, #109, #384).
-- [ ] #1: SkyCraft #188: settle it against the private note, or park it.
-- [ ] #4: schedule the four follow-ups or park them.
-- [ ] Say yes to the live run of Block 2 (cost about 0,29 EUR, demo subscription).
+- [x] #1 open question (decided: stays "two live Azure demos"): the goal stays "two live Azure demos" or becomes "two live demos, at least one in Azure".
+- [x] #1 (confirmed by the speaker): confirm or correct the speaker's statement for the five stories the "AI role per story" section marks as undocumented (#128, #252, #472, #109, #384).
+- [x] #1: SkyCraft #188 stays withdrawn (parked).
+- [x] #4: scheduled before Block 2; offline part in PR #17, comment on #4.
+- [ ] Say yes to the live run of Block 2 (cost about 0,29 EUR, demo subscription). The user wants it last, after PR #17 and the other preparation.
 
 ## Block 2, D-12 to D-10: one live run of the whole on-stage sequence
 
