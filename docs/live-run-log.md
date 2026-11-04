@@ -9,6 +9,25 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, demo subscription, `swedencentral`, run `202611041019`, code at `31fc36f`
+
+Run by the author's agent session, about 09:17 to 09:30 UTC. The demo 2 suite is offline; the rest ran in Azure.
+
+| Step | Observed |
+| --- | --- |
+| Demo 2, `Invoke-Pester ./demos/2-dry-run-is-not-safe -Output Detailed` | 2 tests: 1 failed (`Deploy-Example.ps1`: `line 18: Register-AzResourceProvider`), 1 passed (`Deploy-Example.Fixed.ps1`); process exit 0 without `-CI`, 1 with `-CI` |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | both completed without error; cost guard 0,293758 EUR |
+| Demo 0, `Invoke-OwnershipAudit.ps1` | exit 1 (by design); 4 rows: VM, network interface, disk, auto-shutdown schedule; the disk's id carries the group name in upper case, as Azure returned it |
+| Cheat sheet rule 1 command, as written | the same 4 resources; the deployment's operation list had 6 entries, 1 of them empty; the group held 7 resources |
+| `Get-AzDiagnosticSetting` on the auto-shutdown schedule | error `[ResourceTypeNotSupported] : The resource type 'microsoft.devtestlab/schedules' does not support diagnostic settings.` (matched by the teardown's pattern) |
+| The same call on the VM and the network interface | no error; 0 settings |
+| `Get-AzResourceGroup -Name <missing group>` | error `Provided resource group does not exist.`; with `-ErrorAction SilentlyContinue` it returns null, which is what the teardown relies on, not the text |
+| `Stop-DemoRun.ps1 -RunId <id>` with `out/run.json` moved away | completed without error: removed 1 diagnostic setting, listed again none on 11 resources, deleted the group, printed the final line, deleted the key pair; afterwards 0 `rg-gnp*` groups and 0 resources tagged `project=green-is-not-proof` |
+
+Not covered by this run: a diagnostic setting orphaned by an interrupted demo 1, a `run.json` from another run, and the
+error text for a VM extension. The teardown also treats `BadRequest` as "type does not support diagnostic settings";
+no run here produced a `BadRequest`, so that pattern is unconfirmed (tracked in #4).
+
 ### 2026-11-04, demo subscription, rule 3 under a Reader-only identity, run `202611040802`, code at `b3896c0`
 
 Run by the author's agent session from 07:02 to about 07:30 UTC. A user-assigned managed identity with Reader on the
@@ -97,7 +116,5 @@ names with a hand-written list. Both have since been replaced; kept for history.
 
 | Item | Expected result |
 | --- | --- |
-| Demo 2 on-stage suite, current code | red on `Deploy-Example.ps1`, green on the fixed script (last observed at `1992109`, before the verb allow list) |
-| Cheat sheet rule 1 command as written | lists the same resources as the ownership audit |
 | Backup recordings of the on-stage demos | not made |
 | A run in the hours before each delivery | add a dated block above |
