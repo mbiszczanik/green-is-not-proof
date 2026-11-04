@@ -7,6 +7,7 @@ BeforeAll {
         'Remove-AzResourceGroup'     = 'param($Name, [switch]$Force)'
         'Get-AzDiagnosticSetting'    = 'param($ResourceId)'
         'Remove-AzDiagnosticSetting' = 'param($ResourceId, $Name)'
+        'New-AzStorageAccount'       = 'param($ResourceGroupName, $Name, $Location, $SkuName, $Kind, $Tag)'
     }
     $script:StubNames = @($stubs.Keys)
     foreach ($n in $stubs.Keys) { Set-Item -Path "function:global:$n" -Value ([scriptblock]::Create($stubs[$n])) }
@@ -17,12 +18,13 @@ BeforeAll {
         $null = New-Item -ItemType Directory -Path $script:out
         Mock Get-AzContext { [pscustomobject]@{ Subscription = [pscustomobject]@{ Id = $script:Sub } } }
         $script:RgGone = $false
-        Mock Get-AzResourceGroup { if ($script:RgGone) { throw 'ResourceGroupNotFound: Resource group could not be found.' }; [pscustomobject]@{ ResourceGroupName = 'rg-gnp-202611181805' } }
+        Mock Get-AzResourceGroup { if ($script:RgGone) { throw 'ResourceGroupNotFound: Resource group could not be found.' }; [pscustomobject]@{ ResourceGroupName = 'rg-gnp-202611181805'; Location = 'swedencentral' } }
         Mock Get-DemoExpectedSubscriptionId { $script:Sub }
         Mock Remove-AzResourceGroup { $script:RgGone = $true }
         Mock Remove-DemoDiagnosticSetting { 0 }
         Mock Get-DemoDiagnosticSettingName { @() }
         Mock Get-AzResource { @() }
+        Mock New-AzStorageAccount { [pscustomobject]@{ Id = 'x' } }
     }
 }
 
@@ -31,16 +33,17 @@ AfterAll { foreach ($n in $script:StubNames) { Remove-Item "function:global:$n" 
 Describe 'Invoke-StopDemoRun' {
     BeforeEach { Initialize-Mock }
 
-    It 'Stop-DemoRun on partial run' {
+    It 'Stop-DemoRun on partial run (no storage account) recreates it empty, sweeps it and deletes the group' {
         $code = Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
         $code | Should -Be 0
         Should -Invoke Remove-AzResourceGroup -Times 1 -ParameterFilter { $Name -eq 'rg-gnp-202611181805' -and $Force }
-        Should -Invoke Remove-DemoDiagnosticSetting -Times 0
+        Should -Invoke New-AzStorageAccount -Times 1 -Exactly
+        Should -Invoke Remove-DemoDiagnosticSetting -Times 5 -Exactly
     }
 
     It 'removes settings on resources and storage sub-services before deleting the group' {
         $id = "/subscriptions/$($script:Sub)/resourceGroups/rg-gnp-202611181805/providers/Microsoft.Storage/storageAccounts/stgnp202611181805"
-        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'stgnp202611181805'; ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
         $null = Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1
         Should -Invoke Remove-DemoDiagnosticSetting -Times 1 -ParameterFilter { $ResourceId -eq $id }
         foreach ($s in 'blob', 'file', 'queue', 'table') {
@@ -50,7 +53,7 @@ Describe 'Invoke-StopDemoRun' {
 
     It 'a setting still listed after removal fails before deleting the group' {
         $id = "/subscriptions/$($script:Sub)/resourceGroups/rg-gnp-202611181805/providers/Microsoft.Storage/storageAccounts/stgnp202611181805"
-        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'stgnp202611181805'; ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
         Mock Remove-DemoDiagnosticSetting { 1 }
         Mock Get-DemoDiagnosticSettingName { if ($ResourceId -like '*/blobServices/default') { 'diag-to-log' } }
         $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
@@ -64,7 +67,7 @@ Describe 'Invoke-StopDemoRun' {
 
     It 'reads every resource and storage sub-service back after removal' {
         $id = "/subscriptions/$($script:Sub)/resourceGroups/rg-gnp-202611181805/providers/Microsoft.Storage/storageAccounts/stgnp202611181805"
-        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'stgnp202611181805'; ResourceId = $id; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
         $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
         $out[-1] | Should -Be 0
         Should -Invoke Get-DemoDiagnosticSettingName -Times 5 -Exactly
@@ -146,7 +149,7 @@ Describe 'Invoke-StopDemoRun' {
     }
 
     It 'post-delete check accepts the Az not-found message' {
-        Mock Get-AzResourceGroup { if ($script:RgGone) { throw 'Provided resource group does not exist.' }; [pscustomobject]@{ ResourceGroupName = 'rg' } }
+        Mock Get-AzResourceGroup { if ($script:RgGone) { throw 'Provided resource group does not exist.' }; [pscustomobject]@{ ResourceGroupName = 'rg'; Location = 'swedencentral' } }
         $code = Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
         $code | Should -Be 0
         Should -Invoke Remove-AzResourceGroup -Times 1
@@ -233,29 +236,49 @@ Describe 'Invoke-StopDemoRun' {
         Should -Invoke Get-AzResource -Times 0
     }
 
-    It 'stops before deleting when the run''s storage account is missing from the group' {
+    It 'recreates a missing storage account so its orphaned setting can be removed, then deletes the group' {
         @{ RunId = '202611181805'; SubscriptionId = $script:Sub; StorageAccountName = 'stgnp202611181805' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        # The group listing still lags after the create, as seen live: the new account's id comes from the create result.
         Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'vnet-gnp'; ResourceId = '/v'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
+        Mock New-AzStorageAccount { [pscustomobject]@{ Id = '/s' } }
         $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -OutDir $script:out 6>&1)
-        $out[-1] | Should -Be 1
-        ($out | Out-String) | Should -Match 'Storage stgnp202611181805 from this run is missing; its diagnostic setting may survive\. Run demo 1 -Step Recreate, then -Step Clean, then teardown again\.'
-        Should -Invoke Remove-AzResourceGroup -Times 0
-        Should -Invoke Remove-DemoDiagnosticSetting -Times 0
-        Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
-    }
-
-    It 'without run.json it says it could not check for an orphaned setting, then goes on' {
-        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'vnet-gnp'; ResourceId = '/v'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
-        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
         $out[-1] | Should -Be 0
-        ($out | Out-String) | Should -Match 'Could not check for a diagnostic setting left by storage stgnp202611181805'
+        ($out | Out-String) | Should -Match 'Storage stgnp202611181805 from this run is missing; recreating it empty'
+        Should -Invoke New-AzStorageAccount -Times 1 -Exactly -ParameterFilter { $Name -eq 'stgnp202611181805' -and $ResourceGroupName -eq 'rg-gnp-202611181805' }
+        Should -Invoke Remove-DemoDiagnosticSetting -Times 1 -ParameterFilter { $ResourceId -eq '/s' }
+        Should -Invoke Remove-DemoDiagnosticSetting -Times 1 -ParameterFilter { $ResourceId -eq '/s/blobServices/default' }
         Should -Invoke Remove-AzResourceGroup -Times 1
     }
 
-    It 'without run.json it stays silent about the check when the fixed-name account is in the group' {
-        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'stgnp202611181805'; ResourceId = '/s'; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+    It 'without run.json it recreates the fixed-name account when it is missing' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'vnet-gnp'; ResourceId = '/v'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
         $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
-        ($out | Out-String) | Should -Not -Match 'Could not check'
+        $out[-1] | Should -Be 0
+        Should -Invoke New-AzStorageAccount -Times 1 -Exactly -ParameterFilter { $Name -eq 'stgnp202611181805' }
+    }
+
+    It 'without run.json it does not recreate the account when it is in the group' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'stgnp202611181805'; ResourceId = '/s'; ResourceType = 'Microsoft.Storage/storageAccounts' }) } else { @() } }
+        $null = Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1
+        Should -Invoke New-AzStorageAccount -Times 0 -Exactly
+    }
+
+    It 'retries while Azure holds the name, then gives up with exit 1 and keeps the group' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'vnet-gnp'; ResourceId = '/v'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
+        Mock New-AzStorageAccount { throw 'StorageAccountAlreadyTaken' }
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 1
+        Should -Invoke New-AzStorageAccount -Times 13 -Exactly
+        Should -Invoke Remove-AzResourceGroup -Times 0
+    }
+
+    It 'any other create error stops the teardown before deleting the group' {
+        Mock Get-AzResource { if ($ResourceGroupName) { @([pscustomobject]@{ Name = 'vnet-gnp'; ResourceId = '/v'; ResourceType = 'Microsoft.Network/virtualNetworks' }) } else { @() } }
+        Mock New-AzStorageAccount { throw 'Forbidden' }
+        $out = @(Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1)
+        $out[-1] | Should -Be 1
+        Should -Invoke New-AzStorageAccount -Times 1 -Exactly
+        Should -Invoke Remove-AzResourceGroup -Times 0
     }
 
     It 'goes on when the run''s storage account is in the group' {

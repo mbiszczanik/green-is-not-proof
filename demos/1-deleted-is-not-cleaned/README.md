@@ -42,9 +42,10 @@ removed it.
 
 ## If you stop after step 2
 
-If the account is deleted and not recreated, `scripts/Stop-DemoRun.ps1` stops before deleting anything and
-exits 1 with `Storage <name> from this run is missing; its diagnostic setting may survive.` Run `-Step Recreate`,
-then `-Step Clean`, then run the teardown again.
+If the account is deleted and not recreated, `scripts/Stop-DemoRun.ps1` recreates it empty
+(`Storage <name> from this run is missing; recreating it empty ...`), finds the setting that survived, removes it,
+reads the listing back and then deletes the group. Observed live on 2026-11-04 (see the live-run log). You can also
+run `-Step Recreate` and `-Step Clean` yourself first.
 
 ## Cost
 

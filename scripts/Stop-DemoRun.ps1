@@ -9,7 +9,8 @@ is gone and queries resources tagged runId=<id> (up to 6 times, 10 s apart), exi
 untagged resources outside the group, such as the shared NetworkWatcherRG. The run id comes from -RunId
 or out/run.json; run.json and the generated SSH key pair are removed only after a clean teardown. The current subscription must
 equal the one in run.json (or the configured demo subscription when only -RunId is given). If the run's storage
-account is missing from the group, it stops before deleting anything: demo 1's diagnostic setting may survive.
+account is missing from the group (demo 1 deleted it), it recreates the account empty first, because a diagnostic setting
+it left behind can only be listed and removed through the account.
 .EXAMPLE
 ./scripts/Stop-DemoRun.ps1 -RunId 202611181805
 #>
@@ -57,16 +58,31 @@ function Invoke-StopDemoRun {
 
         if (Test-DemoResourceGroup -Name $rg) {
             $inventory = @(Get-AzResource -ResourceGroupName $rg)
+            $storageName = if ($run -and $run.PSObject.Properties['StorageAccountName'] -and $run.StorageAccountName) { [string]$run.StorageAccountName } else { "stgnp$RunId" }
             $present = @($inventory | Where-Object { $_.PSObject.Properties['ResourceType'] -and $_.PSObject.Properties['Name'] -and $_.ResourceType -eq 'Microsoft.Storage/storageAccounts' } | ForEach-Object { [string]$_.Name })
-            if ($run -and $run.PSObject.Properties['StorageAccountName'] -and $run.StorageAccountName) {
-                if ($run.StorageAccountName -notin $present) {
-                    Write-Host "Storage $($run.StorageAccountName) from this run is missing; its diagnostic setting may survive. Run demo 1 -Step Recreate, then -Step Clean, then teardown again."
-                    return 1
+            if ($storageName -notin $present) {
+                # A diagnostic setting outlives its deleted account and cannot be listed while the parent is gone (live 2026-11-04),
+                # so recreate the account empty, let the sweep below find the setting again, then delete the group.
+                Write-Host "Storage $storageName from this run is missing; recreating it empty so a diagnostic setting it left behind can be listed and removed."
+                $location = [string](Get-AzResourceGroup -Name $rg).Location
+                $tag = Get-DemoTag -RunId $RunId
+                $maxRetries = 12
+                for ($i = 0; ; $i++) {
+                    try {
+                        $created = New-AzStorageAccount -ResourceGroupName $rg -Name $storageName -Location $location -SkuName Standard_LRS -Kind StorageV2 -Tag $tag -ErrorAction Stop
+                        break
+                    }
+                    catch {
+                        if ($_.Exception.Message -notmatch 'StorageAccountAlreadyTaken|AlreadyExists|already taken|in use') { throw }
+                        if ($i -ge $maxRetries) { throw "name $storageName still held by Azure after $($maxRetries * $PollDelaySeconds) s, run the teardown again shortly" }
+                        if ($PollDelaySeconds -gt 0) { Start-Sleep -Seconds $PollDelaySeconds }
+                    }
                 }
-            }
-            elseif ("stgnp$RunId" -notin $present) {
-                # No record of the account name, and the fixed name stgnp<RunId> is gone: a setting it left behind cannot be listed from here.
-                Write-Host "Could not check for a diagnostic setting left by storage stgnp$RunId (no run.json for this run, account not in the group). If demo 1 was interrupted, run its -Step Recreate and -Step Clean first."
+                $inventory = @(Get-AzResource -ResourceGroupName $rg)
+                # The listing can lag behind the create (seen live), so name the new account from the create result.
+                if ($storageName -notin @($inventory | Where-Object { $_.PSObject.Properties['Name'] } | ForEach-Object { [string]$_.Name })) {
+                    $inventory += [pscustomobject]@{ Name = $storageName; ResourceType = 'Microsoft.Storage/storageAccounts'; ResourceId = [string]$created.Id }
+                }
             }
             $removed = 0
             $ids = foreach ($res in $inventory) {

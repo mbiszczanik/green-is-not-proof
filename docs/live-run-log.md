@@ -9,6 +9,22 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, demo subscription, `swedencentral`, runs `202611041652` and `202611041708`, branch of PR #17
+
+Each command as `pwsh -NoProfile -File <script>`, exit code from the process (these two runs are the evidence the block
+above lacks). Run `202611041652`: setup, demo 1 `Show` and `Delete` (exit 0 each), then `Get-AzDiagnosticSetting` on the
+deleted account's blob service.
+
+| Step | Observed |
+| --- | --- |
+| `Get-AzDiagnosticSetting` on the blob service of the deleted account | error: `Failed to perform 'read' on resource(s) of type 'storageAccounts/blobServices', because the parent resource ... could not be found.` The orphaned setting cannot be listed while the account is gone |
+| `Stop-DemoRun.ps1 -RunId 202611041652` (`run.json` moved away), first version of the branch | exit 0; "Could not check" path; `Removed 0`, because the group listing right after the create still lacked the new account (listing lag); group deleted, so the setting was not swept |
+| After a fix (the new account's id taken from the create result), run `202611041708`: `Start-DemoRun.ps1`, demo 1 `Show`, `Delete` | each exit 0 |
+| `Stop-DemoRun.ps1 -RunId 202611041708` (`run.json` moved away) | exit 0; "Storage stgnp202611041708 from this run is missing; recreating it empty ..."; `Removed 1 diagnostic setting(s)`; `Listed again: no diagnostic settings remain on 7 resource(s) and sub-service(s)`; group deleted; final line printed |
+| After both teardowns | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+So a setting orphaned by an interrupted demo 1 is real, and the teardown now removes it by recreating the account empty.
+
 ### 2026-11-04, demo subscription, `swedencentral`, run `202611041553`, branch of PR #17 (code at `2f04b4f`)
 
 Run from 15:53 to 15:58 UTC by one driver script (Azure PowerShell signed in with a token of the demo subscription,
