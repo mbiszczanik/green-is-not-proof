@@ -1,3 +1,8 @@
+# Observed live on 2026-11-04: both types without diagnostic settings (devtestlab schedules, VM extensions) returned
+# `[ResourceTypeNotSupported] : The resource type '...' does not support diagnostic settings.` A bare BadRequest is not
+# treated as "unsupported"; it throws, so a failed read never counts as no settings.
+$script:UnsupportedDiagnosticPattern = 'does not support diagnostic settings|ResourceTypeNotSupported'
+
 function Get-DemoDiagnosticSettingName {
     <#
     .SYNOPSIS
@@ -12,7 +17,7 @@ function Get-DemoDiagnosticSettingName {
     param([Parameter(Mandatory)][string]$ResourceId)
     try { $settings = @(Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction Stop) }
     catch {
-        if ($_.Exception.Message -match 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest') { return @() }
+        if ($_.Exception.Message -match $script:UnsupportedDiagnosticPattern) { return @() }
         throw
     }
     @($settings | ForEach-Object { [string]$_.Name })
@@ -38,8 +43,8 @@ function Remove-DemoDiagnosticSetting {
         $settings = @(Get-AzDiagnosticSetting -ResourceId $ResourceId -ErrorAction Stop)
     }
     catch {
-        if ($_.Exception.Message -match 'does not support diagnostic settings|ResourceTypeNotSupported|BadRequest') {
-            Write-Host (ConvertTo-SafeText -Text "No diagnostic settings supported on $ResourceId" -SubscriptionId $SubscriptionId)
+        if ($_.Exception.Message -match $script:UnsupportedDiagnosticPattern) {
+            Write-Host (ConvertTo-SafeText -Text "No diagnostic settings supported on $ResourceId ($($_.Exception.Message))" -SubscriptionId $SubscriptionId)
             return 0
         }
         throw

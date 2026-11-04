@@ -42,10 +42,22 @@ Describe 'Remove-DemoDiagnosticSetting' {
         $n | Should -Be 2
     }
 
-    It 'treats <msg> as zero settings' -ForEach @(@{ msg = 'ResourceTypeNotSupported' }, @{ msg = 'BadRequest: bad' }) {
+    It 'treats <msg> as zero settings' -ForEach @(@{ msg = 'ResourceTypeNotSupported' }, @{ msg = '[ResourceTypeNotSupported] : The resource type ''microsoft.compute/virtualmachines/extensions'' does not support diagnostic settings.' }) {
         Mock Get-AzDiagnosticSetting { throw $msg }
         Mock Remove-AzDiagnosticSetting { }
         (Remove-DemoDiagnosticSetting -ResourceId '/r' 6>$null) | Should -Be 0
+    }
+
+    It 'a BadRequest throws, even one that mentions diagnostic settings' {
+        Mock Get-AzDiagnosticSetting { throw 'BadRequest: diagnostic settings payload is malformed' }
+        Mock Remove-AzDiagnosticSetting { }
+        { Remove-DemoDiagnosticSetting -ResourceId '/r' } | Should -Throw '*malformed*'
+    }
+
+    It 'prints the raw Azure message so a live run records the text' {
+        Mock Get-AzDiagnosticSetting { throw '[ResourceTypeNotSupported] : the type does not support diagnostic settings.' }
+        $out = Remove-DemoDiagnosticSetting -ResourceId '/r' 6>&1 | Out-String
+        $out | Should -Match 'ResourceTypeNotSupported'
     }
 
     It 'masks the subscription id in the unsupported-type line' {

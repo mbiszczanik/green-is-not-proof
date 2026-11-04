@@ -158,10 +158,23 @@ Describe 'Invoke-DiagnosticSettingLeftover' {
         Should -Invoke Remove-AzStorageAccount -Times 0 -Exactly
     }
 
-    It 'fails when -RunId differs from run.json' {
+    It 'treats a run.json from another run as no record: Recreate has no Location and creates nothing' {
         $r = Step Recreate '202611190000'
         $r.Code | Should -Be 1
-        $r.Text | Should -Match 'not 202611190000'
+        $r.Text | Should -Match 'no Location'
         Should -Invoke New-AzStorageAccount -Times 0 -Exactly
+    }
+
+    It 'treats a run.json from another run as no record: Delete targets the requested run under the configured subscription' {
+        $r = Step Delete '202611190000'
+        $r.Code | Should -Be 0
+        Should -Invoke Remove-AzStorageAccount -Times 1 -Exactly -ParameterFilter { $Name -eq 'stgnp202611190000' -and $ResourceGroupName -eq 'rg-gnp-202611190000' }
+    }
+
+    It 'treats a run.json from another run as no record: a different configured subscription refuses' {
+        Mock Get-DemoExpectedSubscriptionId { [guid]::NewGuid().ToString() }
+        $r = Step Delete '202611190000'
+        $r.Code | Should -Be 1
+        Should -Invoke Remove-AzStorageAccount -Times 0 -Exactly
     }
 }

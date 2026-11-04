@@ -158,9 +158,9 @@ The pre-push hook (`git config core.hooksPath .githooks`) checks the working tre
 ## Safety
 
 - Nothing is deleted outside the run's resource group.
-- Teardown stops on any lookup error instead of guessing that something is gone, stops before deleting
-  anything if demo 1 left the run's storage account missing (its diagnostic setting may survive), and stops if a
-  diagnostic setting is still listed after its removal.
+- Teardown stops on any lookup error instead of guessing that something is gone, and stops if a diagnostic setting
+  is still listed after its removal. If demo 1 left the run's storage account missing, it recreates the account empty
+  first, because a diagnostic setting that outlived the account can only be listed and removed through it.
 - Output masks the subscription id, e-mail addresses and any GUID not on `tools/public-content-allow.txt`.
 - `out/run.json` holds raw ids and is gitignored.
 
