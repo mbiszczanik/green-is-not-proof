@@ -9,6 +9,23 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, demo subscription, rule 3 under a Reader-only identity, run `202611040802`, code at `b3896c0`
+
+Run by the author's agent session from 07:02 to about 07:30 UTC. A user-assigned managed identity with Reader on the
+run's resource group was attached to the run's VM (`Run Command`, curl, token from the instance metadata endpoint).
+The demo script itself was not run as that identity; the same Azure operations were called by REST.
+
+| Step | Observed |
+| --- | --- |
+| `GET` the resource group | HTTP 200 |
+| `POST` `Microsoft.Insights/register` (subscription scope, what the example script calls) | HTTP 403 `AuthorizationFailed` (the first attempt returned 411 because `curl` sent no body; repeated with `Content-Length: 0`) |
+| `PATCH` a tag on the resource group (a write inside the Reader scope) | HTTP 403 `AuthorizationFailed` |
+| `Get-AzActivityLog -Caller <principal id>`, polled 8 min, then a wider query by time | 0 entries for the identity; 45 entries in total, none a refusal |
+| `Stop-DemoRun.ps1` | exit 0; `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0; role assignments left for the identity: 0 |
+
+The role assignment was created over REST because the PowerShell cmdlet needed a Microsoft Graph sign-in that the
+account did not have in this session.
+
 ### 2026-11-03, demo subscription, rule 3 (Activity Log after a dry run), code at `b3896c0`
 
 Run by the author's agent session from 22:17 to 22:28 UTC with the author's own account, which can write (not Reader-only).
@@ -82,6 +99,5 @@ names with a hand-written list. Both have since been replaced; kept for history.
 | --- | --- |
 | Demo 2 on-stage suite, current code | red on `Deploy-Example.ps1`, green on the fixed script (last observed at `1992109`, before the verb allow list) |
 | Cheat sheet rule 1 command as written | lists the same resources as the ownership audit |
-| Rule 3 under a Reader-only identity | Azure refuses the write and the log records the refused attempt; not tested |
 | Backup recordings of the on-stage demos | not made |
 | A run in the hours before each delivery | add a dated block above |

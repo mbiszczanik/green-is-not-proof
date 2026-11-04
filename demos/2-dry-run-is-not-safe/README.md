@@ -22,7 +22,9 @@ Offline, no Azure call. **Observed 2026-11-03** (code at `1992109`, recorded in 
 green on `Deploy-Example.Fixed.ps1`. **Observed 2026-11-03** in the demo subscription, each script run alone with
 `-DryRun` under an account that can write: `Deploy-Example.ps1` left one write operation in the Activity Log
 (`Microsoft.Insights/register/action`, two entries of one correlation id); `Deploy-Example.Fixed.ps1` left none.
-Not tested: the same run under a Reader-only identity, where Azure would refuse the write.
+**Observed 2026-11-04** under a Reader-only identity (managed identity on the run's VM, same operations by REST,
+not the script itself): the write returned 403 `AuthorizationFailed` and left no Activity Log entry. Under Reader the
+refusal is the protection; the log check is for identities that can write.
 
 ## On stage
 

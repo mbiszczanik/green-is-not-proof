@@ -98,4 +98,5 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 The reworked setup, demo 0, demo 1, demo 3 and the teardown read-back ran live once on 2026-11-03 (see
 [live-run-log.md](live-run-log.md)). The gate demo that replaces demo 3 on stage (demo 4) and the module A demo
 (demo 5) were added afterwards. The rule 3 Activity Log check was observed afterwards (write-capable
-account; Reader-only not tested). Still open and tracked in #3 and #4: the backup recordings.
+account) and the Reader-only refusal was observed on 2026-11-04 (403, no log entry). Still open and tracked in #3
+and #4: the backup recordings.

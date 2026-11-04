@@ -41,8 +41,8 @@ The current setup, demos 0, 1, 3 and 5 and the teardown with read-back were obse
 (swedencentral, runs `202611031935` and `202611032044`, every step exit 0 except the ownership audit, which exits 1
 by design; afterwards no resource group or tagged resource was left). Demo 4 ran locally (no Azure) and demo 2 is
 offline by design. The Activity Log check behind rule 3 was observed on 2026-11-03 under a write-capable
-account (Reader-only not tested). Not yet observed: the cheat sheet command for rule 1. The backup recordings are
-still to be made.
+account, and the Reader-only refusal on 2026-11-04 (403, no log entry). Not yet observed: the cheat sheet command
+for rule 1. The backup recordings are still to be made.
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a
