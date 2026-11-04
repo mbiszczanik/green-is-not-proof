@@ -11,7 +11,7 @@ this file; name them by role.
 
 ### 2026-11-04, demo subscription, `swedencentral`, run `202611041019`, code at `31fc36f`
 
-Run by the author's agent session, about 09:17 to 09:30 UTC. The demo 2 suite is offline; the rest ran in Azure.
+Run by the author, about 09:17 to 09:30 UTC. The demo 2 suite is offline; the rest ran in Azure.
 
 | Step | Observed |
 | --- | --- |
@@ -30,7 +30,7 @@ no run here produced a `BadRequest`, so that pattern is unconfirmed (tracked in 
 
 ### 2026-11-04, demo subscription, rule 3 under a Reader-only identity, run `202611040802`, code at `b3896c0`
 
-Run by the author's agent session from 07:02 to about 07:30 UTC. A user-assigned managed identity with Reader on the
+Run by the author from 07:02 to about 07:30 UTC. A user-assigned managed identity with Reader on the
 run's resource group was attached to the run's VM (`Run Command`, curl, token from the instance metadata endpoint).
 The demo script itself was not run as that identity; the same Azure operations were called by REST.
 
@@ -47,7 +47,7 @@ account did not have in this session.
 
 ### 2026-11-03, demo subscription, rule 3 (Activity Log after a dry run), code at `b3896c0`
 
-Run by the author's agent session from 22:17 to 22:28 UTC with the author's own account, which can write (not Reader-only).
+Run by the author from 22:17 to 22:28 UTC with the author's own account, which can write (not Reader-only).
 Both demo 2 example scripts were run for real with `-DryRun`; the only call outside the guard is
 `Register-AzResourceProvider -ProviderNamespace Microsoft.Insights` (already `Registered`, so nothing changed).
 
@@ -62,7 +62,7 @@ Both demo 2 example scripts were run for real with `-DryRun`; the only call outs
 
 ### 2026-11-03, test subscription, `swedencentral`, run `202611032044`, code at `c4b2d8b` plus demos 4 and 5
 
-Run by the author's agent session from 19:43 to 19:54 UTC. Demo 4 ran locally; the rest in Azure.
+Run by the author from 19:43 to 19:54 UTC. Demo 4 ran locally; the rest in Azure.
 
 | Step | Observed |
 | --- | --- |
@@ -79,7 +79,7 @@ Run by the author's agent session from 19:43 to 19:54 UTC. Demo 4 ran locally; t
 
 ### 2026-11-03, test subscription, `swedencentral`, run `202611031935`, code at `15907c2`
 
-Run by the author's agent session from 18:35 to 18:44 UTC, one run from setup to teardown, every command as
+Run by the author from 18:35 to 18:44 UTC, one run from setup to teardown, every command as
 `pwsh -NoProfile -File <script>`. This is the current setup: declared resources from `infra/declared.bicep`, the
 rogue VM from a separate script, the teardown with read-back.
 
