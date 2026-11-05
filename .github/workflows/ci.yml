@@ -16,10 +16,9 @@ jobs:
           Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
       - name: Pester
         run: |
-          $r = Invoke-Pester -Path ./tests -PassThru
-          if ($null -eq $r -or $r.FailedCount -gt 0 -or $r.TotalCount -eq 0) {
-            $Host.SetShouldExit(1); exit 1
-          }
+          # The decision lives in the tool so a test can run it; it also rejects failed containers and blocks.
+          ./tools/Invoke-CiPester.ps1 -Path ./tests
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
       - name: PSScriptAnalyzer
         run: |
           Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0

@@ -7,7 +7,8 @@ them again and stops with exit 1 if any are still listed (the remove call's succ
 setting is a separate resource that deleting the group may not cascade to. Then deletes the group, checks that it
 is gone and queries resources tagged runId=<id> (up to 6 times, 10 s apart), exiting 1 if any remain. Not covered:
 untagged resources outside the group, such as the shared NetworkWatcherRG. The run id comes from -RunId
-or out/run.json; run.json and the generated SSH key pair are removed only after a clean teardown. The current subscription must
+or out/run.json; run.json and the generated SSH key pair are removed only after a clean teardown, and only when run.json is
+this run's (another run's record keeps its keys). The current subscription must
 equal the one in run.json (or the configured demo subscription when only -RunId is given). If the run's storage
 account is missing from the group (demo 1 deleted it), it recreates the account empty first, because a diagnostic setting
 it left behind can only be listed and removed through the account.
@@ -123,12 +124,17 @@ function Invoke-StopDemoRun {
         }
         Write-Host "Resource group $rg gone; no resources tagged runId=$RunId in the subscription. Not covered: untagged resources outside the group."
 
+        $foreign = $false
         if (Test-Path $runFile) {
-            $saved = (Get-Content $runFile -Raw | ConvertFrom-Json).RunId
-            if ($saved -eq $RunId) { Remove-Item $runFile -Force }
+            $rec = Get-Content $runFile -Raw | ConvertFrom-Json
+            if ($rec.RunId -eq $RunId) { Remove-Item $runFile -Force }
+            else { $foreign = $true }
         }
+        # The key pair belongs to the run that wrote run.json; another run's record keeps its keys.
+        if ($foreign) { Write-Host 'run.json belongs to another run; kept it and the SSH key pair in out/' }
         # The VM it opened is gone; a key left in out/ is a credential with nothing to protect.
         foreach ($k in 'demo_key', 'demo_key.pub') {
+            if ($foreign) { break }
             $kp = Join-Path $OutDir $k
             if (Test-Path -LiteralPath $kp) { Remove-Item -LiteralPath $kp -Force; Write-Host "Deleted out/$k" }
         }

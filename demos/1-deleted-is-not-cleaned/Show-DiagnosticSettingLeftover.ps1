@@ -3,6 +3,7 @@
 Demo 1: a diagnostic setting survives its storage account's deletion and re-attaches to a recreated account of the same name.
 .DESCRIPTION
 One step per run, one masked line each, so the speaker advances on stage: Show, Delete, Recreate, List, Clean.
+Verify is the preparation check, not a stage step: after Recreate it exits 1 unless diag-to-log is listed on the new account.
 Uses the run's storage account and its diag-to-log setting on the blob service. Needs a run from
 scripts/Start-DemoRun.ps1 (-RunId, else out/run.json). Creates nothing beyond the run's own account.
 The current subscription must match the run's (run.json) or the configured demo subscription.
@@ -11,7 +12,7 @@ The current subscription must match the run's (run.json) or the configured demo 
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('Show', 'Delete', 'Recreate', 'List', 'Clean')][string]$Step,
+    [Parameter(Mandatory)][ValidateSet('Show', 'Delete', 'Recreate', 'List', 'Clean', 'Verify')][string]$Step,
     [string]$RunId,
     [string]$OutDir
 )
@@ -32,7 +33,7 @@ function Invoke-DiagnosticSettingLeftover {
     [CmdletBinding()]
     [OutputType([int])]
     param(
-        [Parameter(Mandatory)][ValidateSet('Show', 'Delete', 'Recreate', 'List', 'Clean')][string]$Step,
+        [Parameter(Mandatory)][ValidateSet('Show', 'Delete', 'Recreate', 'List', 'Clean', 'Verify')][string]$Step,
         [string]$RunId,
         [Parameter(Mandatory)][string]$OutDir,
         [int]$RetryDelaySeconds = 5
@@ -94,6 +95,16 @@ function Invoke-DiagnosticSettingLeftover {
             'Clean' {
                 $n = Remove-DemoDiagnosticSetting -ResourceId $blobId -SubscriptionId $sub
                 "Removed $n diagnostic setting(s)"
+            }
+            'Verify' {
+                # Preparation check, run after Recreate and before the stage: an empty or unrelated listing is a failed preparation.
+                $names = @(Get-AzDiagnosticSetting -ResourceId $blobId | ForEach-Object Name)
+                if ('diag-to-log' -notin $names) {
+                    $found = if ($names) { $names -join ', ' } else { 'none' }
+                    Write-Host (ConvertTo-SafeText -Text "Demonstration did not reproduce: expected diagnostic setting diag-to-log on the NEW account, found: $found" -SubscriptionId $sub)
+                    return 1
+                }
+                'Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account'
             }
         }
         Write-Host (ConvertTo-SafeText -Text $line -SubscriptionId $sub)
