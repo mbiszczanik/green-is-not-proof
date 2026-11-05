@@ -96,10 +96,10 @@ Then run the demos in order. Each has its own README with the on-stage steps:
 5. [Demo 4: a gate you never saw red](demos/4-gate-never-red/README.md) (local, no Azure; the talk's core, act 2)
 6. [Demo 5: existing is not working](demos/5-exists-is-not-healthy/README.md) (module A; run
    `./demos/5-exists-is-not-healthy/New-FailedExtension.ps1` after demo 0 and before the talk)
-7. [Demo 6: a gate that reads only the exit code](demos/6-lint-warns-gate-passes/README.md) (module C candidate; local,
+7. [Demo 6: a gate that reads only the exit code](demos/6-lint-warns-gate-passes/README.md) (module C; local,
    no Azure)
-8. [Demo 7: a gate that passes when nothing was evaluated](demos/7-unprocessed-object-passes/README.md) (module C
-   candidate; local, no Azure; needs the PSRule modules)
+8. [Demo 7: a gate that passes when nothing was evaluated](demos/7-unprocessed-object-passes/README.md) (module C;
+   local, no Azure; needs the PSRule modules)
 
 Tear everything down and read back what is left:
 
