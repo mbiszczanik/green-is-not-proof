@@ -54,15 +54,16 @@ Evidence: dated run, every command with its exit code taken from the process, co
 - [x] One pull request for the first-class gaps: PR #17, merged as `4c73f01` (teardown recreates a missing account, foreign `run.json`, narrower `BadRequest`); #4 closed by hand with the evidence.
 - [x] Confirming runs with real exit codes: runs `202611041652` (found the listing lag) and `202611041708` (teardown exit 0, `Removed 1`, 0 groups, 0 tagged resources); local demos 2, 4 and 6 on `4c73f01` (PR #18 records them).
 - [x] Every other gap recorded: the ownership audit group-name case stays as Azure spells it (decision recorded on #4).
-- [x] The whole sequence in Azure on `04b51f8` as one run with process exit codes (run `202611041758`, 2026-11-04: all steps 0 except the two ownership audits, 1 by design; nothing left afterwards). Recorded in PR "docs: record the full Azure run on main".
+- [x] The whole sequence in Azure on `04b51f8` as one run with process exit codes (run `202611041758`, 2026-11-04: all steps 0 except the two ownership audits, 1 by design; nothing left afterwards). Recorded in PR #22 (merged, `a02c3b8`).
+- [x] The same sequence again on `99fa8fd` with `Verify` and the foreign-record teardown (run `202611052136`, 2026-11-05: nothing left afterwards). Recorded in PR #22.
 
 ## Audit findings of 2026-11-05 (#19, #20, #21): offline fixes, done early
 
 Evidence: full suite exit code and green CI run ids in each pull request.
 
 - [x] #19 CI accepts Pester container and discovery failures: PR #23 merged (`872f036`), closed by it.
-- [x] #20 teardown may delete the SSH keys of another run: PR #24 merged (`d72e9b2`), `Refs #20`; issue open, a live teardown with a foreign record is optional and owed.
-- [x] #21 demo 1 preparation does not fail when the leftover setting is absent: PR #25 merged (`99fa8fd`), `Refs #21`; issue open, the live preparation check (`-Step Verify` after `Recreate`) is owed and needs the user's yes.
+- [x] #20 teardown may delete the SSH keys of another run: PR #24 merged (`d72e9b2`); live check in run `202611052136` (2026-11-05), recorded in PR #22 (`a02c3b8`); closed by hand with the evidence.
+- [x] #21 demo 1 preparation does not fail when the leftover setting is absent: PR #25 merged (`99fa8fd`); live `Verify` in run `202611052136` (exit 0 after `Recreate`, exit 1 after `Clean`), recorded in PR #22; closed by hand with the evidence.
 
 ## Block 3, D-9 to D-6: decks and notes (not this repository)
 
@@ -79,7 +80,7 @@ Evidence: a dated block in `docs/live-run-log.md` from the author's run.
 
 - [ ] The author records demos 0, 1, 4, 5 and 6 and checks each frame for subscription id, tenant, account name and local path (#3).
 - [ ] One final live run shortly before delivery (#3).
-- [x] The merged worktrees and branches of PRs #23 to #25 are removed (2026-11-05). Still to remove at close-out: `log-full-run` after PR #22 merges, and `burndown` with this file.
+- [x] The merged worktrees and branches of PRs #23 to #25 are removed (2026-11-05). `log-full-run` removed after PR #22 merged. Still to remove at close-out: `burndown` with this file.
 
 ## Block 6, D to D+1: close-out
 
@@ -98,9 +99,8 @@ Evidence: dated run, command, exit code; an offline test in CI.
 ## Needs the user
 
 - Nothing from Block 1: decided 2026-11-04 (executor owns #1; goal stays two live Azure demos; five stories confirmed; #188 parked; #4 scheduled and closed; live run approved and done).
-- A decision on merging the PR that records run `202611041758` in the log.
+- Nothing from the log and the audit findings: PR #22 merged, #19 to #21 closed (2026-11-05).
 - Rehearsal on the author's screen, the backup recordings and the decks (Blocks 3 to 5).
-- A yes to one live preparation run for #21 (`-Step Delete`, `Recreate`, `Verify`, then the teardown; about 0.29 EUR) and, in the same run, the optional foreign-record check for #20. Both issues stay open until a dated run is recorded.
 - Not in this repository: the repository secret `GNP_DENY_LIST` and the topics (not verified), the `azure` remote with an embedded credential in a local clone of the course repository (remove it and reset the publishing credentials), and the old revision of #10 in its edit history (delete it by hand).
 
 ## Risks
