@@ -92,7 +92,7 @@ Evidence: a dated block in `docs/live-run-log.md` from the author's run.
 
 Evidence: dated run, command, exit code; an offline test in CI.
 
-- [ ] Candidate 2 (PSRule): install `PSRule` and `PSRule.Rules.Azure`, run on the sample template, learn what `Assert-PSRule` does when an object is not processed; build the demo only if the result is a gap a gate would miss (#10).
+- [x] Candidate 2 (PSRule): run locally 2026-11-05; `Assert-PSRule` exits 0 with 0 rules evaluated when nothing targets the input, a gate would miss it, so demo 7 was built (PR #26 merged, `c19ae7d`; status comment on #10). Whether demo 7 is part of module C is the author's decision.
 - [ ] Backup recording of demo 6 and of any candidate 2 demo, after an identifier check (#10).
 - [x] The four follow-ups of #4: done in PR #17 and #4 closed (2026-11-04).
 
