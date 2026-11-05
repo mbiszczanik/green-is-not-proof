@@ -8,14 +8,14 @@ shall point here instead of copying results. A figure on a slide comes from a da
 
 | Part | Demo and command | Last observed (live-run-log block) | The slide may say | The slide may not say |
 | --- | --- | --- | --- | --- |
-| Act 1, deleted is not cleaned up | [demo 1](../demos/1-deleted-is-not-cleaned/README.md), five steps `Show`, `Delete`, `Recreate`, `List`, `Clean` of `Show-DiagnosticSettingLeftover.ps1` | 2026-11-03, run `202611031935`: each step exit 0; `List` printed `Diagnostic settings on the NEW account: diag-to-log`; `Clean` removed 1 | the setting of a deleted account was listed on a new account with the same name | that other child types or other resources are left behind |
+| Act 1, deleted is not cleaned up | [demo 1](../demos/1-deleted-is-not-cleaned/README.md), five steps `Show`, `Delete`, `Recreate`, `List`, `Clean` of `Show-DiagnosticSettingLeftover.ps1` | 2026-11-05, run `202611052136`, code at `99fa8fd`: each step exit 0; `Verify` after `Recreate` exit 0; `List` printed `Diagnostic settings on the NEW account: diag-to-log`; `Clean` removed 1; `Verify` after `Clean` exit 1 | the setting of a deleted account was listed on a new account with the same name | that other child types or other resources are left behind |
 | Act 2, a gate you never saw red | [demo 4](../demos/4-gate-never-red/README.md), `Invoke-Gate.ps1 -Script Silent`, `Counted`, `Fixed` with `-State Empty` and `Ok` | 2026-11-03, run `202611032044`: `Silent` and `Counted` printed 2 failure lines and `Process exit code: 0`; `Fixed` exited 1 on the empty state and 0 on the ok state | a script can print failures and exit 0; the fixed version exits non-zero on the same failure | that the PowerShell behaviour holds on versions other than 7.6.9 (the version it was observed on) |
 
 ## Module A
 
 | Part | Demo and command | Last observed | The slide may say | The slide may not say |
 | --- | --- | --- | --- | --- |
-| Exists is not working | [demo 5](../demos/5-exists-is-not-healthy/README.md), `New-FailedExtension.ps1` then `Show-ExistenceVsState.ps1` | 2026-11-03, run `202611032044`: extension step exit 0 after 37 s, Azure returned `VMExtensionProvisioningError`; `Existence check: PASS`, `State check: FAIL (ProvisioningState: Failed)` | an extension in state `Failed` passes an existence check and fails a state check | that this is what happened in the original SkyCraft case; it is the same shape, built to fail on purpose |
+| Exists is not working | [demo 5](../demos/5-exists-is-not-healthy/README.md), `New-FailedExtension.ps1` then `Show-ExistenceVsState.ps1` | 2026-11-04, run `202611041758`: both steps exit 0, Azure returned `VMExtensionProvisioningError`; `Existence check: PASS`, `State check: FAIL (ProvisioningState: Failed)` | an extension in state `Failed` passes an existence check and fails a state check | that this is what happened in the original SkyCraft case; it is the same shape, built to fail on purpose |
 
 ## Optional material and module C
 
@@ -31,7 +31,7 @@ shall point here instead of copying results. A figure on a slide comes from a da
 These must not be presented as observed:
 
 - backup recordings of demos 0, 1, 4, 5 and 6 (due D-2, after an identifier check);
-- the full sequence on the code of the day of delivery (add a dated block to the log before each delivery).
+- the full sequence on the code of the day of delivery (last full Azure run: 2026-11-04 at `04b51f8`; add a dated block to the log before each delivery).
 
 ## Updating this page
 
