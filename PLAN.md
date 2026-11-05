@@ -95,6 +95,8 @@ Evidence: dated run, command, exit code; an offline test in CI.
 - A yes to remove the merged worktrees and their remote branches.
 - Not in this repository: the repository secret `GNP_DENY_LIST` and the topics (not verified), the `azure` remote with an embedded credential in a local clone of the course repository (remove it and reset the publishing credentials), and the old revision of #10 in its edit history (delete it by hand).
 
+- Three audit findings filed 2026-11-05 (#19 CI accepts Pester container and discovery failures, #20 teardown may delete SSH keys of another run, #21 demo 1 preparation does not fail when the leftover setting is absent): classes proposed, not decided. #21 is first class (it can show an empty result on stage at D-5), #19 and #20 only the maintainer's tooling. The user decides which to schedule.
+
 ## Risks
 
 - A cached Azure sign-in expired earlier in this work; a role assignment through the PowerShell cmdlet needed a Microsoft Graph sign-in the session did not have. Run `Get-AzContext` and confirm the demo subscription before each live block.
