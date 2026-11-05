@@ -56,6 +56,14 @@ Evidence: dated run, every command with its exit code taken from the process, co
 - [x] Every other gap recorded: the ownership audit group-name case stays as Azure spells it (decision recorded on #4).
 - [x] The whole sequence in Azure on `04b51f8` as one run with process exit codes (run `202611041758`, 2026-11-04: all steps 0 except the two ownership audits, 1 by design; nothing left afterwards). Recorded in PR "docs: record the full Azure run on main".
 
+## Audit findings of 2026-11-05 (#19, #20, #21): offline fixes, done early
+
+Evidence: full suite exit code and green CI run ids in each pull request.
+
+- [x] #19 CI accepts Pester container and discovery failures: PR #23 merged (`872f036`), closed by it.
+- [x] #20 teardown may delete the SSH keys of another run: PR #24 merged (`d72e9b2`), `Refs #20`; issue open, a live teardown with a foreign record is optional and owed.
+- [x] #21 demo 1 preparation does not fail when the leftover setting is absent: PR #25 merged (`99fa8fd`), `Refs #21`; issue open, the live preparation check (`-Step Verify` after `Recreate`) is owed and needs the user's yes.
+
 ## Block 3, D-9 to D-6: decks and notes (not this repository)
 
 Another session works on them in the private repository. Dependency only: the core deck and the module A deck are ready for rehearsal at D-5.
@@ -71,7 +79,7 @@ Evidence: a dated block in `docs/live-run-log.md` from the author's run.
 
 - [ ] The author records demos 0, 1, 4, 5 and 6 and checks each frame for subscription id, tenant, account name and local path (#3).
 - [ ] One final live run shortly before delivery (#3).
-- [ ] The merged worktrees and branches are removed (needs the user's yes; nine on 2026-11-04, now more with PRs #16 and #17).
+- [x] The merged worktrees and branches of PRs #23 to #25 are removed (2026-11-05). Still to remove at close-out: `log-full-run` after PR #22 merges, and `burndown` with this file.
 
 ## Block 6, D to D+1: close-out
 
@@ -92,10 +100,8 @@ Evidence: dated run, command, exit code; an offline test in CI.
 - Nothing from Block 1: decided 2026-11-04 (executor owns #1; goal stays two live Azure demos; five stories confirmed; #188 parked; #4 scheduled and closed; live run approved and done).
 - A decision on merging the PR that records run `202611041758` in the log.
 - Rehearsal on the author's screen, the backup recordings and the decks (Blocks 3 to 5).
-- A yes to remove the merged worktrees and their remote branches.
+- A yes to one live preparation run for #21 (`-Step Delete`, `Recreate`, `Verify`, then the teardown; about 0.29 EUR) and, in the same run, the optional foreign-record check for #20. Both issues stay open until a dated run is recorded.
 - Not in this repository: the repository secret `GNP_DENY_LIST` and the topics (not verified), the `azure` remote with an embedded credential in a local clone of the course repository (remove it and reset the publishing credentials), and the old revision of #10 in its edit history (delete it by hand).
-
-- Three audit findings filed 2026-11-05 (#19 CI accepts Pester container and discovery failures, #20 teardown may delete SSH keys of another run, #21 demo 1 preparation does not fail when the leftover setting is absent): classes proposed, not decided. #21 is first class (it can show an empty result on stage at D-5), #19 and #20 only the maintainer's tooling. The user decides which to schedule.
 
 ## Risks
 
