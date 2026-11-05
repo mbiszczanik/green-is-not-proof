@@ -32,6 +32,14 @@ Each step prints one masked line.
 
 The point lands at step 4: the delete was green, and the old setting is still listed on the new account.
 
+## Preparation check
+
+Before the stage, run steps 2 and 3, then `-Step Verify`. It exits 0 and prints
+`Demonstration reproduced: ...` only when `diag-to-log` is listed on the recreated account. If the setting is absent,
+or only another setting is listed, it prints `Demonstration did not reproduce: ...` and exits 1: do not go on stage with
+that run. A failed read also exits 1. `-Step List` stays a display step and exits 0 on an empty listing, which is the
+expected result after step 5. Run step 5 afterwards, or let `scripts/Stop-DemoRun.ps1` do it.
+
 **Observed 2026-11-03**, earlier setup (the account and its setting were created by the earlier setup script, code
 at `1992109`, recorded in PR #2): step 4 printed `Diagnostic settings on the NEW account: diag-to-log`, and step 5
 removed it.

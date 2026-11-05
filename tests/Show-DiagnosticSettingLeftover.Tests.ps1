@@ -68,6 +68,39 @@ Describe 'Invoke-DiagnosticSettingLeftover' {
         $r.Text | Should -Be 'Diagnostic settings on the NEW account: diag-to-log'
     }
 
+    It 'Verify reports the demonstration reproduced when diag-to-log is listed' {
+        $r = Step Verify
+        $r.Code | Should -Be 0
+        $r.Text | Should -Be 'Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account'
+    }
+
+    It 'Verify fails when no setting is listed' {
+        $script:Settings = @()
+        $r = Step Verify
+        $r.Code | Should -Be 1
+        $r.Text | Should -Be 'Demonstration did not reproduce: expected diagnostic setting diag-to-log on the NEW account, found: none'
+    }
+
+    It 'Verify fails when only an unrelated setting is listed' {
+        $script:Settings = @([pscustomobject]@{ Name = 'other-setting' })
+        $r = Step Verify
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'found: other-setting'
+    }
+
+    It 'Verify fails when the read fails, instead of reading it as an empty listing' {
+        Mock Get-AzDiagnosticSetting { throw 'ResourceNotFound: parent resource is gone' }
+        $r = Step Verify
+        $r.Code | Should -Be 1
+        $r.Text | Should -Match 'Verify failed'
+        $r.Text | Should -Not -Match 'did not reproduce'
+    }
+
+    It 'List still shows an empty result after cleanup and exits 0' {
+        $script:Settings = @()
+        (Step List).Code | Should -Be 0
+    }
+
     It 'Clean removes it and List shows none' {
         $r = Step Clean
         $r.Code | Should -Be 0
