@@ -9,6 +9,24 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-05, local, no Azure, demo 7, code at `a02c3b8` plus demo 7
+
+Run by the author on PowerShell 7.6.9 with PSRule 2.9.0, PSRule.Rules.Azure 1.47.0 and Bicep CLI 0.38.5. Each command
+as `pwsh -NoProfile -File <script>`, exit code from the process. The experiment that led to the demo ran the same
+modules on small fixtures first.
+
+| Step | Observed |
+| --- | --- |
+| `Invoke-Gate.ps1 -Gate Bare -Pipeline Misconfigured` | runner exit 0; `[WARN] Target object ... has not been processed because no matching rules were found.`; `Rules processed: 0, failed: 0, errored: 0`; `The gate would PASS although no rule was evaluated.` |
+| `Invoke-Gate.ps1 -Gate Fixed -Pipeline Misconfigured` | runner exit 1; `Fixed gate: FAIL` |
+| `Invoke-Gate.ps1 -Gate Fixed -Pipeline Configured` | runner exit 1; `Rules processed: 21, failed: 8, errored: 0`; 8 `[FAIL]` rule lines |
+| `Invoke-Gate.ps1 -Gate Bare -Pipeline Configured`, first run after a cold start | runner exit 1; PSRule printed `Bicep compilation hasn't completed within the timeout window`; 0 rules processed. A repeat of the same setup in the experiment completed normally the second time |
+| Experiment, `Assert-PSRule` on a JSON object that no rule targets | process exit 0 with the warning; with `Execution.UnprocessedObject` `Error` process exit 1; with `Ignore` exit 0 and no warning |
+| Experiment, `Execution.UnprocessedObject=Error` on a template without resources, expansion on | process exit 1, `has not been processed`, 0 rules processed; without the option the same template ran 7 deployment rules and exited 0 |
+
+Not covered: other PSRule or rule-set versions, other input types, and a pipeline that uses a different PSRule entry
+point (for example the GitHub Action or the Azure DevOps task, which may map warnings to its own status).
+
 ### 2026-11-05, test subscription, `swedencentral`, run `202611052136`, code at `99fa8fd` (main after PRs #23 to #25)
 
 The Azure part of the on-stage sequence plus the two checks added by PRs #24 and #25, 20:36 to 20:46 UTC, run by the
