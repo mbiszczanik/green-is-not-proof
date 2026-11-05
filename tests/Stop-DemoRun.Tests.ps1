@@ -141,6 +141,28 @@ Describe 'Invoke-StopDemoRun' {
         Test-Path (Join-Path $script:out 'run.json') | Should -BeTrue
     }
 
+    It 'keeps run.json and the SSH key pair of another run after a clean teardown' {
+        @{ RunId = '202611190000' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        foreach ($k in 'demo_key', 'demo_key.pub') { Set-Content (Join-Path $script:out $k) 'k' }
+        (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1) | Should -Be 0
+        foreach ($f in 'run.json', 'demo_key', 'demo_key.pub') { Test-Path (Join-Path $script:out $f) | Should -BeTrue -Because $f }
+    }
+
+    It 'keeps the pair and says so when the record is another run''s' {
+        @{ RunId = '202611190000' } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        foreach ($k in 'demo_key', 'demo_key.pub') { Set-Content (Join-Path $script:out $k) 'k' }
+        $text = (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Out-String)
+        $text | Should -Match 'belongs to another run'
+        $text | Should -Not -Match 'Deleted out/demo_key'
+    }
+
+    It 'removes the pair with the record when run.json belongs to the torn-down run' {
+        @{ RunId = '202611181805'; SubscriptionId = $script:Sub } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
+        foreach ($k in 'demo_key', 'demo_key.pub') { Set-Content (Join-Path $script:out $k) 'k' }
+        (Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1) | Should -Be 0
+        foreach ($f in 'run.json', 'demo_key', 'demo_key.pub') { Test-Path (Join-Path $script:out $f) | Should -BeFalse -Because $f }
+    }
+
     It 'missing group with the Az not-found message is treated as missing' {
         Mock Get-AzResourceGroup { throw 'Provided resource group does not exist.' }
         $code = Invoke-StopDemoRun -PollDelaySeconds 0 -RunId '202611181805' -OutDir $script:out 6>&1 | Select-Object -Last 1
