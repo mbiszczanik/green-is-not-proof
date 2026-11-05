@@ -9,6 +9,35 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-05, test subscription, `swedencentral`, run `202611052136`, code at `99fa8fd` (main after PRs #23 to #25)
+
+The Azure part of the on-stage sequence plus the two checks added by PRs #24 and #25, 20:36 to 20:46 UTC, run by the
+author with Azure PowerShell under the account of the test subscription. The demo subscription pin was set for that
+process only (`GNP_SUBSCRIPTION_ID`), no configuration file changed. Each step a child `pwsh -NoProfile -File <script>`;
+the exit code is the process's own. Row counts of the ownership audits were not captured (the output filter dropped the
+rows). Before: 0 `rg-gnp*` groups, 0 tagged resources.
+
+| Step | Exit | Observed |
+| --- | --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | 0 | cost guard 0,293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | 0 | `vm-traffic` created outside the declared deployment; auto-shutdown set |
+| Demo 0, `Invoke-TagAudit.ps1` | 0 | "All 7 resources carry project tags: OK" |
+| Demo 0, `Invoke-OwnershipAudit.ps1` | 1 (by design) | "Not in the deployment record:" |
+| Demo 1, `Show`, `Delete`, `Recreate` | 0 each | account deleted and recreated, no name retry needed |
+| Demo 1, `Verify` after `Recreate` (#21) | 0 | `Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account` |
+| Demo 1, `List`, `Clean` | 0 each | `List`: `Diagnostic settings on the NEW account: diag-to-log`; `Clean`: `Removed 1 diagnostic setting(s)` |
+| Demo 1, `Verify` after `Clean` (#21) | 1 (by design) | `Demonstration did not reproduce: ... found: none` |
+| Demo 3, `Show-LiveProperty.ps1` | 0 | `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `New-FailedExtension.ps1` | 0 | extension in `Failed` |
+| Demo 5, `Show-ExistenceVsState.ps1` | 0 | `Existence check: PASS`; `State check: FAIL (ProvisioningState: Failed)` |
+| Demo 0, `Invoke-OwnershipAudit.ps1` after the extension | 1 (by design) | "Not in the deployment record:" |
+| `Stop-DemoRun.ps1` (with `run.json`) | 0 | `Removed 0` (`Clean` had removed it); listed again none on 13 resources and sub-services; group deleted; no tagged resources; key pair deleted |
+| `Stop-DemoRun.ps1 -RunId 202611050000 -OutDir <scratch dir>` with a `run.json` of run `202611050001` and two dummy key files (#20) | 0 | group not found, skipped; `run.json belongs to another run; kept it and the SSH key pair in out/`; all three files still present afterwards |
+| After teardown | | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+Not covered: a teardown after an interrupted demo 1 (see the block of runs `202611041652` and `202611041708`), and a
+foreign record next to a teardown that deletes a real group (the #20 check used a run id whose group does not exist).
+
 ### 2026-11-04, demo subscription, `swedencentral`, run `202611041758`, code at `04b51f8` (main after PRs #17 and #18)
 
 One run of the Azure part of the on-stage sequence, 16:58 to 17:06 UTC, run by the author. Each step a child
