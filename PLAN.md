@@ -54,7 +54,7 @@ Evidence: dated run, every command with its exit code taken from the process, co
 - [x] One pull request for the first-class gaps: PR #17, merged as `4c73f01` (teardown recreates a missing account, foreign `run.json`, narrower `BadRequest`); #4 closed by hand with the evidence.
 - [x] Confirming runs with real exit codes: runs `202611041652` (found the listing lag) and `202611041708` (teardown exit 0, `Removed 1`, 0 groups, 0 tagged resources); local demos 2, 4 and 6 on `4c73f01` (PR #18 records them).
 - [x] Every other gap recorded: the ownership audit group-name case stays as Azure spells it (decision recorded on #4).
-- [ ] Not yet run: the whole sequence in Azure on `4c73f01` as one run with process exit codes (demos 0, 1, 3, 5 plus the teardown). It belongs to Block 4's rehearsal and the final run of Block 5.
+- [x] The whole sequence in Azure on `04b51f8` as one run with process exit codes (run `202611041758`, 2026-11-04: all steps 0 except the two ownership audits, 1 by design; nothing left afterwards). Recorded in PR "docs: record the full Azure run on main".
 
 ## Block 3, D-9 to D-6: decks and notes (not this repository)
 
@@ -90,7 +90,7 @@ Evidence: dated run, command, exit code; an offline test in CI.
 ## Needs the user
 
 - Nothing from Block 1: decided 2026-11-04 (executor owns #1; goal stays two live Azure demos; five stories confirmed; #188 parked; #4 scheduled and closed; live run approved and done).
-- A decision on merging PR #18 (talk evidence index and the log blocks).
+- A decision on merging the PR that records run `202611041758` in the log.
 - Rehearsal on the author's screen, the backup recordings and the decks (Blocks 3 to 5).
 - A yes to remove the merged worktrees and their remote branches.
 - Not in this repository: the repository secret `GNP_DENY_LIST` and the topics (not verified), the `azure` remote with an embedded credential in a local clone of the course repository (remove it and reset the publishing credentials), and the old revision of #10 in its edit history (delete it by hand).
