@@ -9,6 +9,28 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-04, demo subscription, `swedencentral`, run `202611041758`, code at `04b51f8` (main after PRs #17 and #18)
+
+One run of the Azure part of the on-stage sequence, 16:58 to 17:06 UTC, run by the author. Each step a child
+`pwsh -NoProfile -File <script>`; the exit code is the process's own. Row counts of the ownership audits were not
+captured (the output filter dropped the rows); the earlier blocks hold them.
+
+| Step | Exit | Observed |
+| --- | --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | 0 | cost guard 0,293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | 0 | `vm-traffic` created outside the declared deployment; auto-shutdown set |
+| Demo 0, `Invoke-TagAudit.ps1` | 0 | "All 7 resources carry project tags: OK" |
+| Demo 0, `Invoke-OwnershipAudit.ps1` | 1 (by design) | "Not in the deployment record:" with a table of rows |
+| Demo 1, `Show`, `Delete`, `Recreate`, `List`, `Clean` | 0 each | `List`: `Diagnostic settings on the NEW account: diag-to-log`; `Clean`: `Removed 1 diagnostic setting(s)` |
+| Demo 3, `Show-LiveProperty.ps1` | 0 | `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `New-FailedExtension.ps1` | 0 | `VMExtensionProvisioningError`; extension in `Failed` |
+| Demo 5, `Show-ExistenceVsState.ps1` | 0 | `Existence check: PASS`; `State check: FAIL (ProvisioningState: Failed)` |
+| Demo 0, `Invoke-OwnershipAudit.ps1` after the extension | 1 (by design) | table with the extension among the rows |
+| `Stop-DemoRun.ps1` (with `run.json`) | 0 | `Removed 0` (demo 1 `Clean` had removed it); listed again none on 12 resources and sub-services; group deleted; final line printed; key pair deleted |
+| After teardown | | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+Not covered: the teardown after an interrupted demo 1 (see the block of runs `202611041652` and `202611041708`).
+
 ### 2026-11-04, local, no Azure, demos 2, 4 and 6, code at `4c73f01` (main after PR #17)
 
 Each command as `pwsh -NoProfile -File <script>`, exit code from the process; demo 2 with `Invoke-Pester -CI`.
