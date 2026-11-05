@@ -20,6 +20,11 @@ Describe 'Invoke-CiPester' {
         $r.Code | Should -Be 0
         $r.Output | Should -Match 'accepted'
     }
+    It 'does not impose strict mode or Stop on the tests it runs' {
+        $t = "Describe 'lenient' { It 'reads a missing property' { `$o = [pscustomobject]@{}; [bool]`$o.Missing | Should -BeFalse; Write-Error 'non-terminating' -ErrorAction Continue } }"
+        $r = Invoke-Fixture 'lenient' @{ 'Lenient.Tests.ps1' = $t }
+        $r.Code | Should -Be 0
+    }
     It 'rejects a failed test' {
         $r = Invoke-Fixture 'failed' @{ 'Good.Tests.ps1' = $script:Good; 'Fail.Tests.ps1' = "Describe 'x' { It 'fails' { 1 | Should -Be 2 } }" }
         $r.Code | Should -Be 1

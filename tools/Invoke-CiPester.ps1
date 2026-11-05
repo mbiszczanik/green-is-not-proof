@@ -13,8 +13,7 @@ param(
     [Parameter(Mandatory)][string]$Path,
     [ValidateSet('None', 'Normal', 'Detailed')][string]$Output = 'Normal'
 )
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+# No strict mode or Stop preference at script scope: Pester runs the tests in this scope and they would inherit it.
 
 function Get-PesterDecision {
     <#
@@ -26,6 +25,7 @@ function Get-PesterDecision {
     [CmdletBinding()]
     [OutputType([string[]])]
     param($Result)
+    Set-StrictMode -Version Latest
     if ($null -eq $Result) { return @('no result') }
     $why = @()
     if ($Result.Result -ne 'Passed') { $why += "result is $($Result.Result)" }
