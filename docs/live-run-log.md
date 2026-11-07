@@ -252,5 +252,5 @@ names with a hand-written list. Both have since been replaced; kept for history.
 
 | Item | Expected result |
 | --- | --- |
-| Backup recordings of the on-stage demos | not made |
+| Backup recordings of the on-stage demos | demo 4 made (2026-11-07); demos 0, 1, 5 and 6 not made |
 | A run in the hours before each delivery | add a dated block above |
