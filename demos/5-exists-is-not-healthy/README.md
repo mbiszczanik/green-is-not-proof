@@ -59,6 +59,11 @@ never shows a pass it did not produce.
 
 ## Results
 
+- **Observed 2026-11-08** (run `202611081831`, code at `0571f52`, a subscription with a policy that installs the Guest
+  Configuration extension): `New-FailedExtension.ps1` exit 0 after 39 s and `Show-ExistenceVsState.ps1` exit 0 with the
+  three lines above. In that subscription the ownership audit of demo 0 lists 6 rows after this step (VM, NIC, disk,
+  schedule and two extensions: `AzurePolicyforLinux` from the policy and `gnp-failing-script`). See
+  [docs/live-run-log.md](../../docs/live-run-log.md).
 - **Observed 2026-11-03** (run `202611032044`, code at `c4b2d8b` plus this demo): `New-FailedExtension.ps1` exit 0 after
   37 s; `Show-ExistenceVsState.ps1` exit 0 with the three lines above. See
   [docs/live-run-log.md](../../docs/live-run-log.md).

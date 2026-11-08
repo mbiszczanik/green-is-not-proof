@@ -9,6 +9,40 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-08, second test subscription, `swedencentral`, run `202611081831`, code at `0571f52` (main after PR #29)
+
+Run by the author from 17:30 to 17:40 UTC, in a subscription of a different directory than the blocks below; the
+local demos ran at the end. Every command as `pwsh -NoProfile -File <script>`, exit code from the process; the Azure
+scripts ran with an Az context built from the Azure CLI session of the same account.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | exit 0 after 65 s; cost guard 0.293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | exit 0 after 44 s; `vm-traffic` outside the deployment; auto-shutdown 20:32 UTC |
+| Demo 0, `Invoke-TagAudit.ps1` | exit 0; 7 resources, "All 7 resources carry project tags: OK" |
+| Demo 0, `Invoke-OwnershipAudit.ps1`, right after the VM | exit 1; 4 rows: VM, NIC, OS disk, shutdown schedule |
+| Demo 1, `-Step Show`, `Delete`, `Recreate`, `Verify`, `List`, `Clean` | each exit 0; Show: `diag-to-log` on the account; Verify: "Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account"; List: `Diagnostic settings on the NEW account: diag-to-log`; Clean: `Removed 1 diagnostic setting(s)` |
+| Demo 3, `Show-LiveProperty.ps1` | exit 0; `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `New-FailedExtension.ps1`, `Show-ExistenceVsState.ps1` | exit 0 after 39 s with `ProvisioningState Failed`; exit 0 with `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)` |
+| Demo 0 audits after the extension | tag audit exit 0, 7 resources; ownership audit exit 1 with 6 rows: the four above plus `AzurePolicyforLinux` (installed by a policy of this subscription) and `gnp-failing-script` |
+| `Stop-DemoRun.ps1` | exit 0 after 212 s; resource group deleted and gone; nothing tagged `runId=202611081831` remains |
+| After teardown | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0; no `out/run.json` |
+| Demo 2, `Invoke-Pester ./demos/2-dry-run-is-not-safe -CI -Output Detailed` | process exit 1; `Tests Passed: 1, Failed: 1`; the same command without `-CI`: process exit 0 |
+| Demo 4, `Invoke-Gate.ps1` `Silent`/`Empty`, `Counted`/`Empty`, `Fixed`/`Empty`, `Fixed`/`Ok` | runner exit 0, 0, 1, 0; `Process exit code: 0` for the first two |
+| Demo 6, `Invoke-Gate.ps1` `Bare`/`Sample`, `Fixed`/`Sample`, `Bare`/`Clean`, `Fixed`/`Clean` | runner exit 0, 1, 0, 0 |
+| Demo 7, `Invoke-Gate.ps1` `Bare`/`Misconfigured`, `Fixed`/`Misconfigured`, `Fixed`/`Configured` | runner exit 0 with `Rules evaluated: 0`, 1, 1 with `Rules processed: 21, failed: 8` |
+
+What differed from the expected output: the ownership audit row count depends on time. A policy of this subscription
+installs the `AzurePolicyforLinux` extension a few minutes after the VM exists, so the audit shows 4 rows at first and
+a further row later (see the note in the demo 0 README).
+
+Notes on the run itself: the first attempt of the demo 2 command in the run script gave exit 64 and then -1, a quoting
+mistake of the script and not a test result, and was rerun as above; the script's first teardown count was invalid
+(a function shadowed `az`), so the counts above were taken again with the Azure CLI.
+
+Not covered by this run: the Portal, the dry run with the Activity Log (rule 3), a Reader-only identity, a teardown that
+fails the read-back, and any region other than `swedencentral`.
+
 ### 2026-11-05, local, no Azure, demo 7, code at `a02c3b8` plus demo 7
 
 Run by the author on PowerShell 7.6.9 with PSRule 2.9.0, PSRule.Rules.Azure 1.47.0 and Bicep CLI 0.38.5. Each command
