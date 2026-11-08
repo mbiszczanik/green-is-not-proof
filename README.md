@@ -42,7 +42,7 @@ The current setup, demos 0, 1, 3 and 5 and the teardown with read-back were obse
 by design; afterwards no resource group or tagged resource was left). Demo 4 ran locally (no Azure) and demo 2 is
 offline by design. The Activity Log check behind rule 3 was observed on 2026-11-03 under a write-capable
 account, and the Reader-only refusal on 2026-11-04 (403, no log entry). The cheat sheet command for rule 1 and the demo 2
-suite on current code were observed on 2026-11-04. Demo 4 has a backup recording; the others are still to be made.
+suite on current code were observed on 2026-11-04. Demos 0, 4, 6 and 7 have a backup recording; the others are still to be made.
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a

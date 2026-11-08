@@ -31,7 +31,7 @@ shall point here instead of copying results. A figure on a slide comes from a da
 
 These must not be presented as observed:
 
-- backup recordings of demos 0, 1, 5 and 6 (due D-2, after an identifier check); demo 4 has one;
+- backup recordings of demos 1 and 5 (due D-2, after an identifier check); demos 0, 4, 6 and 7 have one;
 - the full sequence on the code of the day of delivery (last full Azure run: 2026-11-04 at `04b51f8`; add a dated block to the log before each delivery).
 
 ## Updating this page
