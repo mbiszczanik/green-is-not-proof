@@ -79,6 +79,11 @@ flag it too.
    shutdown-computevm-vm-traffic Microsoft.DevTestLab/schedules  ...
    ```
 
+   The row count depends on the subscription and on time. If a policy installs the Guest Configuration extension, an
+   extra row `vm-traffic/AzurePolicyforLinux` (`Microsoft.Compute/virtualMachines/extensions`) appears a few minutes
+   after the VM exists: observed 2026-11-08, 4 rows right after `New-RogueResource.ps1` and 5 later. Run the audit once
+   before the talk and expect that row; it is not in the deployment record either, and it does not weaken the point.
+
    If the deployment record is missing or did not succeed, the audit exits 1 and names the record instead of
    reporting anything as declared or undeclared.
 
