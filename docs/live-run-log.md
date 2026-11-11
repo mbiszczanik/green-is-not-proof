@@ -9,6 +9,31 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-11, test subscription, rule 3 under a Reader-only identity, run in a fresh run, code at `59e2b7f`
+
+Run by the author from 15:06 to 15:21 UTC. A user-assigned managed identity created inside the run's resource group,
+Reader on that group, attached to the run's VM; the calls were made from the VM (`az vm run-command invoke`, curl, token
+from the instance metadata endpoint). The demo script itself was not run as that identity; the same Azure operations were
+called by REST, as on 2026-11-04. The role assignment came from the Azure CLI (object id with principal type, no Microsoft
+Graph sign-in needed).
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | exit 0 after 70 s, exit 0 after 57 s; cost guard 0.293758 EUR for 2 hours |
+| `az identity create`, `az role assignment create` (Reader on the run group), `az vm identity assign` | each exit 0 |
+| Token from the instance metadata endpoint, as the identity | obtained |
+| `GET` the resource group | HTTP 200 |
+| `POST` `Microsoft.Insights/register` (subscription scope, what the example script calls) | HTTP 403 `AuthorizationFailed` |
+| `PATCH` a tag on the resource group (a write inside the Reader scope) | HTTP 403 `AuthorizationFailed` |
+| `Get-AzActivityLog -Caller <principal id>`, read 7 min after the calls | 0 entries for the identity; 3 entries in total in that window, none for the identity |
+| `Stop-DemoRun.ps1` | exit 0 after 139 s; afterwards `rg-gnp*` groups: 0, resources tagged `project=green-is-not-proof`: 0, role assignments scoped to any `rg-gnp*` group: 0, identity `id-gnp-reader` listed: 0 |
+
+What differed from the expected output: nothing. The `az role assignment create` output field for the role name came
+back empty (the query used a field the command does not return); that the role was Reader rests on the read succeeding
+and both writes being refused.
+
+Not covered by this pass: the Portal and a teardown that fails the read-back.
+
 ### 2026-11-11, test subscription, rule 3 (Activity Log after a dry run), code at `34bf7cb`
 
 Run by the author from 14:27 to 14:35 UTC with the author's own account, which can write (not Reader-only), on
