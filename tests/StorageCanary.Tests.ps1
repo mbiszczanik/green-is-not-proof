@@ -41,11 +41,20 @@ BeforeAll {
                 Import-Module PSRule.Rules.Azure
                 $opt = New-PSRuleOption -Option @{ 'Configuration.AZURE_BICEP_FILE_EXPANSION' = $ExpandBicep; 'Output.Style' = 'Plain' }
                 $rec = Invoke-PSRule -Module PSRule.Rules.Azure -InputPath $Path -Format File -Option $opt -WarningVariable w -ErrorVariable e -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
-                [pscustomobject]@{ Record = @($rec); Diagnostic = @(@($w) + @($e) | Where-Object { $_ } | ForEach-Object { "$_" }) }
+                [pscustomobject]@{
+                    Record     = @($rec)
+                    Diagnostic = @(@($w) | Where-Object { $_ } | ForEach-Object { "$_" })
+                    Error      = @(@($e) | Where-Object { $_ } | ForEach-Object { "$_" })
+                }
             }
         )
         try { $r = & $Evaluator $Path $ExpandBicep }
         catch { return [pscustomobject]@{ Records = @(); Infrastructure = "infrastructure failure: the evaluation threw: $($_.Exception.Message)" } }
+        # PSRule 2.9.0 emits this one error in PSRule.psm1 on a run that returns all 21 records (seen outside Pester too); any other error fails.
+        $errs = @($r.Error | Where-Object { $_ -and $_ -notmatch "^Cannot find a variable with the name 'PSModuleAutoLoadingPreference'" })
+        if ($errs.Count -gt 0) {
+            return [pscustomobject]@{ Records = @(); Infrastructure = "infrastructure failure: the evaluation reported $($errs.Count) error(s): $($errs -join ' | ')" }
+        }
         $diag = (@($r.Diagnostic) -join ' | ')
         if ($diag -match '(?i)compilation.*(timeout|completed within)') {
             return [pscustomobject]@{ Records = @(); Infrastructure = "infrastructure failure: Bicep compilation did not complete (timeout): $diag" }
@@ -126,6 +135,36 @@ Describe 'Invoke-RuleEvaluation' {
         $r = Invoke-RuleEvaluation -Path 'x.bicep' -Evaluator { [pscustomobject]@{ Record = @(); Diagnostic = @("Bicep compilation hasn't completed within the timeout window") } }
         $r.Infrastructure | Should -Match 'infrastructure'
         $r.Infrastructure | Should -Match 'timeout'
+    }
+
+    It 'reports a non-timeout evaluation error with no records as an infrastructure failure, not a missing record' {
+        $r = Invoke-RuleEvaluation -Path 'x.bicep' -Evaluator { [pscustomobject]@{ Record = @(); Diagnostic = @(); Error = @('Unable to expand the Bicep file') } }
+        $r.Infrastructure | Should -Match 'infrastructure'
+        $r.Infrastructure | Should -Match 'Unable to expand'
+        $f = @(Get-EvaluationFailure -Evaluation $r -Expected (New-Expected 'sa1' 'Fail'))
+        $f.Count | Should -Be 1
+        $f[0] | Should -Not -Match 'missing record'
+    }
+
+    It 'reports an evaluation error as an infrastructure failure even when the expected records came back' {
+        $good = @((New-Record 'Azure.Storage.MinTLS' 'sa1' 'Fail'), (New-Record 'Azure.Storage.BlobPublicAccess' 'sa1' 'Fail'))
+        $r = Invoke-RuleEvaluation -Path 'x.bicep' -Evaluator { [pscustomobject]@{ Record = $good; Diagnostic = @(); Error = @('Unable to expand the Bicep file') } }.GetNewClosure()
+        $r.Infrastructure | Should -Match 'infrastructure'
+        @(Get-EvaluationFailure -Evaluation $r -Expected (New-Expected 'sa1' 'Fail')) | Should -Not -BeNullOrEmpty
+    }
+
+    It 'ignores only the known benign PSRule 2.9.0 error and still fails on another error next to it' {
+        $benign = "Cannot find a variable with the name 'PSModuleAutoLoadingPreference'."
+        $r = Invoke-RuleEvaluation -Path 'x.bicep' -Evaluator { [pscustomobject]@{ Record = @(); Diagnostic = @(); Error = @("Cannot find a variable with the name 'PSModuleAutoLoadingPreference'.") } }
+        $r.Infrastructure | Should -BeNullOrEmpty -Because $benign
+        $r2 = Invoke-RuleEvaluation -Path 'x.bicep' -Evaluator { [pscustomobject]@{ Record = @(); Diagnostic = @(); Error = @("Cannot find a variable with the name 'PSModuleAutoLoadingPreference'.", 'Unable to expand the Bicep file') } }
+        $r2.Infrastructure | Should -Match 'Unable to expand'
+        $r2.Infrastructure | Should -Match '1 error'
+    }
+
+    It 'keeps a warning that is not a timeout from being an infrastructure failure' {
+        $r = Invoke-RuleEvaluation -Path 'x.bicep' -Evaluator { [pscustomobject]@{ Record = @(); Diagnostic = @("Target object 'x.bicep' has not been processed because no matching rules were found."); Error = @() } }
+        $r.Infrastructure | Should -BeNullOrEmpty
     }
 
     It 'treats an evaluation with no records and no diagnostic as a missing-record case, not an infrastructure failure' {

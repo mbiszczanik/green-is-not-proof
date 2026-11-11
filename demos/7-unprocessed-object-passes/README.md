@@ -97,8 +97,9 @@ and outcome `Fail`, and the same two rules on `Storage.Fixed.bicep` (account `st
 default of deny and soft delete; only `minimumTlsVersion` and `allowBlobPublicAccess` correspond to the two named rules,
 and the other six failures of the insecure template come from the other settings. A missing record, another target,
 another outcome, an `Error` record, an empty result and a Bicep compilation timeout each fail the test, the timeout
-as an infrastructure failure and not as a statement about the account. Static analysis of a template: it does not read
-any state from Azure.
+as an infrastructure failure and not as a statement about the account; so does any evaluation error except one message
+that PSRule 2.9.0 itself reports on a run that returns all 21 records (a missing variable in `PSRule.psm1`, seen
+outside the tests too). Static analysis of a template: it does not read any state from Azure.
 
 ## Tests
 
