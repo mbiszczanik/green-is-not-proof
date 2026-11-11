@@ -43,6 +43,22 @@ function Get-ExtensionStateText {
     '(missing)'
 }
 
+function Test-ExtensionNotFound {
+    <#
+    .SYNOPSIS
+    Returns $true only for a ResourceNotFound answer that names the extension; subscription, group, VM and bare NotFound answers are $false.
+    .EXAMPLE
+    Test-ExtensionNotFound -Message $_.Exception.Message -Name 'gnp-failing-script'
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([AllowEmptyString()][AllowNull()][string]$Message, [Parameter(Mandatory)][string]$Name)
+    # Message text only: Az gives no stable structured code here. Exact text for a missing extension is confirmed by the live run.
+    if ([string]::IsNullOrEmpty($Message)) { return $false }
+    if ($Message -match 'SubscriptionNotFound|ResourceGroupNotFound') { return $false }
+    $Message -match '\bResourceNotFound\b' -and $Message -match ('extensions/' + [regex]::Escape($Name) + '\b')
+}
+
 function Invoke-ShowExistenceVsState {
     <#
     .SYNOPSIS
@@ -74,8 +90,8 @@ function Invoke-ShowExistenceVsState {
             $ext = Get-AzVMExtension -ResourceGroupName $run.ResourceGroup -VMName $run.RogueVmName -Name $script:ExtensionName -ErrorAction Stop
         }
         catch {
-            # Only a not-found answer means the extension is absent; any other failure means no read happened.
-            if ($_.Exception.Message -notmatch 'NotFound|could not be found|was not found') { throw }
+            # Only a not-found answer naming this extension means it is absent; any other failure means no read happened.
+            if (-not (Test-ExtensionNotFound -Message $_.Exception.Message -Name $script:ExtensionName)) { throw }
             $ext = $null
         }
         if (-not $ext) {

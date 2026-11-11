@@ -142,6 +142,33 @@ Describe 'Invoke-ShowExistenceVsState' {
         $text | Should -Not -Match 'Existence check: FAIL'
     }
 
+    It 'reads <Name> as a check that did not run, not as a missing extension, <Mode>' -ForEach @(
+        foreach ($mode in 'default', 'ExpectFailed') {
+            foreach ($c in @(
+                @{ Name = 'SubscriptionNotFound'; Msg = "SubscriptionNotFound: The subscription 'x' could not be found." }
+                @{ Name = 'ResourceGroupNotFound'; Msg = "ResourceGroupNotFound: Resource group 'rg' could not be found." }
+                @{ Name = 'a bare NotFound'; Msg = 'NotFound' }
+                @{ Name = 'a VM not found'; Msg = "ResourceNotFound: The Resource 'Microsoft.Compute/virtualMachines/vm-traffic' under resource group 'rg' was not found." }
+            )) { @{ Name = $c.Name; Msg = $c.Msg; Mode = $mode } }
+        }
+    ) {
+        $m = $Msg
+        Mock Get-AzVMExtension { throw $m }.GetNewClosure()
+        $res = if ($Mode -eq 'ExpectFailed') { Invoke-ShowExistenceVsState -OutDir $script:out -ExpectFailed 6>&1 } else { Invoke-ShowExistenceVsState -OutDir $script:out 6>&1 }
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        $text = ($res | Where-Object { $_ -isnot [int] } | Out-String)
+        $text | Should -Match 'The check did not run'
+        $text | Should -Not -Match 'New-FailedExtension'
+        $text | Should -Not -Match 'Existence check: FAIL'
+    }
+
+    It 'reads an extension-specific ResourceNotFound as a missing extension, <Mode>' -ForEach @(@{ Mode = 'default' }, @{ Mode = 'ExpectFailed' }) {
+        Mock Get-AzVMExtension { throw "ResourceNotFound: The Resource 'Microsoft.Compute/virtualMachines/vm-traffic/extensions/gnp-failing-script' under resource group 'rg' was not found." }
+        $res = if ($Mode -eq 'ExpectFailed') { Invoke-ShowExistenceVsState -OutDir $script:out -ExpectFailed 6>&1 } else { Invoke-ShowExistenceVsState -OutDir $script:out 6>&1 }
+        ($res | Where-Object { $_ -is [int] }) | Should -Be 1
+        ($res | Where-Object { $_ -isnot [int] } | Out-String) | Should -Match 'Existence check: FAIL.*New-FailedExtension\.ps1'
+    }
+
     It 'returns 1 and says the check did not run when there is no Azure context' {
         Mock Get-AzContext { $null }
         $res = Invoke-ShowExistenceVsState -OutDir $script:out 6>&1
