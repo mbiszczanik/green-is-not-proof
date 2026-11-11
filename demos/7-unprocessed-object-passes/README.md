@@ -86,7 +86,24 @@ Local paths in the output are printed as `.`, so a recording shows no user name.
   1 with `Rules processed: 21, failed: 8`. That block does not record the module versions.
 - Run it again before each delivery and add a dated block to the log.
 
+## Which rule judged which resource
+
+The output of `Invoke-Gate.ps1` names the failed rules and counts them; it does not name the resource a rule failed
+on (its one `WARN` line names the file). `tests/StorageCanary.Tests.ps1` ties the two rules this demo is about to the
+account: with Bicep expansion on, PSRule returns a record for `Azure.Storage.MinTLS` (AZR-000200) and
+`Azure.Storage.BlobPublicAccess` (AZR-000198) with target `stdemoinsecure01` of type `Microsoft.Storage/storageAccounts`
+and outcome `Fail`, and the same two rules on `Storage.Fixed.bicep` (account `stdemosecure01`) with outcome `Pass`.
+`Storage.Fixed.bicep` passes the whole ruleset, so it also sets tags, zone redundancy, shared key access off, a firewall
+default of deny and soft delete; only `minimumTlsVersion` and `allowBlobPublicAccess` correspond to the two named rules,
+and the other six failures of the insecure template come from the other settings. A missing record, another target,
+another outcome, an `Error` record, an empty result and a Bicep compilation timeout each fail the test, the timeout
+as an infrastructure failure and not as a statement about the account. Static analysis of a template: it does not read
+any state from Azure.
+
 ## Tests
+
+`tests/StorageCanary.Tests.ps1` runs in CI with the real rules; it is skipped, and the CI gate rejects the skip, when
+`PSRule.Rules.Azure` is not installed.
 
 `tests/UnprocessedGateDemo.Tests.ps1` runs in CI. It checks the program's logic with fixed input: the summary
 parser, the two gates on each exit code and summary, masking of local paths, and that a missing module exits 1. The
