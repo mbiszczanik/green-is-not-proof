@@ -102,7 +102,7 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 - Fix: the gate prints the skipped count and fails on a skipped test that is not on `tools/ci-skip-allow.txt` with a
   reason. CI installs PSRule, PSRule.Rules.Azure and the Bicep CLI so those tests run. The "not installed" test no
   longer depends on the module being absent. Tests run a suite with one skipped, unlisted test through the gate and
-  expect exit 1.
+  expect exit 1. A run in which every test is skipped and allowlisted is rejected too (`no test was evaluated`).
 
 ## Still open
 

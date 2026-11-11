@@ -52,6 +52,16 @@ Describe 'Invoke-CiPester' {
         $r.Code | Should -Be 1
         $r.Output | Should -Match 'no tests ran'
     }
+    It 'rejects a run where every test is skipped and allowlisted' {
+        $r = Invoke-Fixture 'all-skipped' @{ 'Skip.Tests.ps1' = $script:Skipped } -Allow 'sk.skipped it | needs a tool the runner lacks'
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'no test was evaluated'
+    }
+    It 'rejects a run with zero tests even when the allowlist has entries' {
+        $r = Invoke-Fixture 'zero-allow' @{ 'Empty.Tests.ps1' = "Describe 'none' { }" } -Allow 'sk.skipped it | needs a tool the runner lacks'
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'no tests ran'
+    }
     It 'rejects a skipped test that is not on the allowlist and names it' {
         $r = Invoke-Fixture 'skipped' @{ 'Good.Tests.ps1' = $script:Good; 'Skip.Tests.ps1' = $script:Skipped } -Allow ''
         $r.Code | Should -Be 1

@@ -3,7 +3,8 @@
 Runs Pester over a path and exits 1 unless every discovered test, block and container completed and passed, with no unlisted skip.
 .DESCRIPTION
 The CI gate for the test suite. Rejects a null result, a result other than Passed, failed tests, failed blocks,
-failed containers, tests not run, inconclusive tests, and a run with zero tests. A skipped test is rejected unless
+failed containers, tests not run, inconclusive tests, a run with zero tests, and a run in which no test passed or
+failed (all skipped, even if allowlisted). A skipped test is rejected unless
 it is on the allowlist (tools/ci-skip-allow.txt, one `<test path> | <reason>` per line, # comments); an entry
 without a reason is rejected. A file that throws during discovery is a failed container, so another file's passing
 test cannot hide it. Prints the counts, including skipped, and one decision line, and exits 0 or 1.
@@ -65,6 +66,7 @@ function Get-PesterDecision {
     if ($Result.FailedContainersCount -gt 0) { $why += "$($Result.FailedContainersCount) failed container(s)" }
     if ($Result.NotRunCount -gt 0) { $why += "$($Result.NotRunCount) test(s) not run" }
     if ($Result.TotalCount -eq 0) { $why += 'no tests ran' }
+    elseif ($Result.PassedCount + $Result.FailedCount -eq 0) { $why += 'no test was evaluated (every test was skipped)' }
     if ($Result.InconclusiveCount -gt 0) { $why += "$($Result.InconclusiveCount) inconclusive test(s)" }
     $why += $AllowProblems
     $skipped = @($Result.Tests | Where-Object { $_.Result -eq 'Skipped' } | ForEach-Object { $_.ExpandedPath })
