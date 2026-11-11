@@ -40,10 +40,10 @@ away with the resource group.
 ## On stage
 
 ```powershell
-./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1
+./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1 -ExpectFailed
 ```
 
-Expected output (exit code 0):
+Expected output (exit code 0, because `-ExpectFailed` says a `Failed` state is the result this demo expects):
 
 ```text
 Existence check: PASS (extension gnp-failing-script found)
@@ -54,11 +54,26 @@ One read of this extension, in this configuration, at this moment.
 Then state what it settles: for this extension, now, "exists" and "works" disagree, and a validator that stops at the
 first check would report success. It does not show how common this is.
 
-The script exits 1, saying so, when the extension is missing or its state is anything other than `Failed`, so the demo
-never shows a pass it did not produce.
+## Exit codes
+
+Without `-ExpectFailed` the script is a state check, and a failed state check is a failed script:
+
+| Situation | Without `-ExpectFailed` | With `-ExpectFailed` |
+| --- | --- | --- |
+| Extension exists, state `Succeeded` | 0 | 1, "not Failed" |
+| Extension exists, state `Failed` | 1 | 0 |
+| Extension exists, any other or blank state | 1 | 1, "not Failed" |
+| Extension not found | 1 | 1 |
+| The read could not run (no Azure context, no run file, a read error other than not found) | 1, "The check did not run." | 1, "The check did not run." |
+
+The plain run exits 1 for the extension this demo builds, so a pipeline that calls it is not a false green. The flag
+only moves the question: with it, exit 0 means "the demo showed its point", never "the extension is healthy".
 
 ## Results
 
+- Both observed runs below predate the exit-code contract above: they ran the script as it was then (exit 0 for state
+  `Failed`). Owed: a live run of `Show-ExistenceVsState.ps1` without and with `-ExpectFailed` against a real failed
+  extension, with the exit codes recorded in the live-run log, and a new backup recording of the on-stage run.
 - **Observed 2026-11-08** (run `202611081831`, code at `0571f52`, a subscription with a policy that installs the Guest
   Configuration extension): `New-FailedExtension.ps1` exit 0 after 39 s and `Show-ExistenceVsState.ps1` exit 0 with the
   three lines above. In that subscription the ownership audit of demo 0 lists 6 rows after this step (VM, NIC, disk,
@@ -74,4 +89,4 @@ never shows a pass it did not produce.
 ## Tests
 
 `tests/ExistsVsState.Tests.ps1` runs in CI with mocks. It checks the program's logic: the extension parameters, the
-exit codes, a missing state never passing, masking. It does not replace the live read above.
+exit codes of both modes, a missing state never passing, a check that did not run, masking. It does not replace the live read above.

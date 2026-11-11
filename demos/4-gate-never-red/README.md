@@ -6,6 +6,14 @@ demo (act 2): it runs locally with PowerShell 7, makes no Azure call and costs n
 The rule: a green gate is a declaration until you have seen it go red. The stronger check is the process exit code,
 read from the process itself, and a run of the gate against an input that must fail.
 
+## Why it is green
+
+The script counts the failures and calls `exit 1`, yet the process exits 0. What is documented: the exit code is lost
+when the script starts with `#Requires -Modules` and runs under `pwsh -File`, and `Test-Lab.Fixed.ps1` keeps it by
+calling `$Host.SetShouldExit($code)` before `exit`. Observed on PowerShell 7.6.9 (2026-11-03, see
+[docs/live-run-log.md](../../docs/live-run-log.md)); the origin is SkyCraft PR 109, linked below. Why the host drops the
+code is observed, cause not documented here. The gate reads only the process exit code, so it shows green.
+
 ## What each check settles
 
 | Check | Settles | Does not settle |

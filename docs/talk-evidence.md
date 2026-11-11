@@ -15,7 +15,7 @@ shall point here instead of copying results. A figure on a slide comes from a da
 
 | Part | Demo and command | Last observed | The slide may say | The slide may not say |
 | --- | --- | --- | --- | --- |
-| Exists is not working | [demo 5](../demos/5-exists-is-not-healthy/README.md), `New-FailedExtension.ps1` then `Show-ExistenceVsState.ps1` | 2026-11-04, run `202611041758`: both steps exit 0, Azure returned `VMExtensionProvisioningError`; `Existence check: PASS`, `State check: FAIL (ProvisioningState: Failed)` | an extension in state `Failed` passes an existence check and fails a state check | that this is what happened in the original SkyCraft case; it is the same shape, built to fail on purpose |
+| Exists is not working | [demo 5](../demos/5-exists-is-not-healthy/README.md), `New-FailedExtension.ps1` then `Show-ExistenceVsState.ps1 -ExpectFailed` | 2026-11-04, run `202611041758`, before the exit-code change (the script then exited 0 without the flag; a live run with the flag is owed): both steps exit 0, Azure returned `VMExtensionProvisioningError`; `Existence check: PASS`, `State check: FAIL (ProvisioningState: Failed)` | an extension in state `Failed` passes an existence check and fails a state check | that this is what happened in the original SkyCraft case; it is the same shape, built to fail on purpose |
 
 ## Optional material and module C
 
