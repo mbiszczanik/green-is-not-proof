@@ -10,5 +10,5 @@ $code = $LASTEXITCODE
 Write-Host "Step complete: $(@($captured).Count) line(s) captured."
 if ($code -ne 0) {
     Write-Host "Inner command failed with exit code $code."
-    exit 1
+    exit $code
 }

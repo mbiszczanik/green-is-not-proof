@@ -31,4 +31,13 @@ Describe 'gallery: exit code swallowed by a pipe (pwsh -File, child processes)' 
         $after[0] | Should -BeExactly $before[0]
         $before[0] | Should -Match 'exit 1'
     }
+    It 'before.ps1 never reads LASTEXITCODE' {
+        Get-Content -LiteralPath (Join-Path $script:Dir 'before.ps1') -Raw | Should -Not -Match 'LASTEXITCODE'
+    }
+    It 'after.ps1 reads LASTEXITCODE straight after the pipeline' {
+        $code = @(Get-Content -LiteralPath (Join-Path $script:Dir 'after.ps1') | Where-Object { $_.Trim() -and $_ -notmatch '^\s*#' })
+        $i = [Array]::FindIndex([string[]]$code, [Predicate[string]] { param($l) $l -match '\| Tee-Object' })
+        $i | Should -BeGreaterOrEqual 0
+        $code[$i + 1] | Should -Match '=\s*\$LASTEXITCODE\s*$'
+    }
 }

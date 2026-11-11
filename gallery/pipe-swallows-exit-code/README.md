@@ -14,7 +14,7 @@ costs nothing.
 | File | What it is |
 | --- | --- |
 | `before.ps1` | runs an inner command that exits 1, pipes it into `Tee-Object`, never reads the exit code |
-| `after.ps1` | the same inner command and pipe, then reads `$LASTEXITCODE` and exits 1 |
+| `after.ps1` | the same inner command and pipe, then reads `$LASTEXITCODE` straight after the pipeline and exits with it (1) |
 
 ## Run it
 
@@ -35,5 +35,6 @@ Expected: both print `[FAIL] inner check`; the first ends with `0`, the second w
 ## Tests
 
 `tests/Gallery.PipeExit.Tests.ps1` runs in CI. It starts both variants in child processes and asserts both exit
-codes, that both show the failure line and that both run the same inner command. If the before variant ever
+codes, that both show the failure line, that both run the same inner command, that `before.ps1` never reads
+`$LASTEXITCODE` and that `after.ps1` reads it straight after the pipeline. If the before variant ever
 reports the failure, the test fails, so this demo cannot silently turn into a second "after".
