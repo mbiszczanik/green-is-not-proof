@@ -55,6 +55,8 @@ Local paths in the linter output are printed as `.`, so a recording shows no use
 - **Observed 2026-11-04** (Bicep CLI 0.38.5, run locally, see [docs/live-run-log.md](../../docs/live-run-log.md)):
   `Bare` on `Sample` exit 0 with `The gate would PASS although the output shows a diagnostic.`; `Fixed` on `Sample`
   exit 1; both gates exit 0 on `Clean`.
+- **Observed 2026-11-08**, the newest run (local part of the block of run `202611081831`, code at `0571f52`): the same
+  four exit codes, 0, 1, 0, 0. That block does not record the printed lines or the Bicep CLI version.
 - Run it again before each delivery and add a dated block to the log.
 
 ## Tests

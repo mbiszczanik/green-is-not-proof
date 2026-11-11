@@ -45,7 +45,12 @@ at `1992109`, recorded in PR #2): step 4 printed `Diagnostic settings on the NEW
 removed it.
 
 **Observed 2026-11-03**, current setup (the account and the setting come from `infra/declared.bicep`, run
-`202611031935`, code at `15907c2`): the same output, every step exit 0. See
+`202611031935`, code at `15907c2`): the same output, every step exit 0.
+
+**Observed 2026-11-08**, the newest full run (run `202611081831`, code at `0571f52`): `Show`, `Delete`, `Recreate`,
+`Verify`, `List` and `Clean` each exit 0; `Verify` printed `Demonstration reproduced: ...`, `List` printed
+`Diagnostic settings on the NEW account: diag-to-log` and `Clean` printed `Removed 1 diagnostic setting(s)`. `Verify`
+after `Clean` was not run then; its exit 1 was observed on 2026-11-05 (run `202611052136`). See
 [docs/live-run-log.md](../../docs/live-run-log.md). Run it again before each delivery.
 
 ## If you stop after step 2
