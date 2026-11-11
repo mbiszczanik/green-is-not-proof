@@ -4,14 +4,22 @@ BeforeAll {
 
     # Each fixture is a directory of test files run by the real tool in a child process.
     function script:Invoke-Fixture {
-        param([string]$Name, [hashtable]$Files)
+        param([string]$Name, [hashtable]$Files, [string]$Allow, [string]$AllowPath)
         $dir = Join-Path $TestDrive $Name
         $null = New-Item -ItemType Directory -Path $dir
         foreach ($f in $Files.Keys) { Set-Content -LiteralPath (Join-Path $dir $f) -Value $Files[$f] }
-        $out = & $script:Pwsh -NoProfile -File $script:Tool -Path $dir -Output None 2>&1 | Out-String
+        $extra = @()
+        if ($PSBoundParameters.ContainsKey('Allow')) {
+            $af = Join-Path $TestDrive "$Name-allow.txt"
+            Set-Content -LiteralPath $af -Value $Allow
+            $extra = @('-AllowSkipPath', $af)
+        }
+        if ($AllowPath) { $extra = @('-AllowSkipPath', $AllowPath) }
+        $out = & $script:Pwsh -NoProfile -File $script:Tool -Path $dir -Output None @extra 2>&1 | Out-String
         [pscustomobject]@{ Code = $LASTEXITCODE; Output = $out }
     }
     $script:Good = "Describe 'ok' { It 'runs' { 1 | Should -Be 1 } }"
+    $script:Skipped = "Describe 'sk' { It 'skipped it' -Skip { 1 | Should -Be 1 } }"
 }
 
 Describe 'Invoke-CiPester' {
@@ -43,5 +51,49 @@ Describe 'Invoke-CiPester' {
         $r = Invoke-Fixture 'zero' @{ 'Empty.Tests.ps1' = "Describe 'none' { }" }
         $r.Code | Should -Be 1
         $r.Output | Should -Match 'no tests ran'
+    }
+    It 'rejects a skipped test that is not on the allowlist and names it' {
+        $r = Invoke-Fixture 'skipped' @{ 'Good.Tests.ps1' = $script:Good; 'Skip.Tests.ps1' = $script:Skipped } -Allow ''
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'skipped test\(s\) not on the allowlist'
+        $r.Output | Should -Match 'sk\.skipped it'
+    }
+    It 'rejects a skipped test when the default allowlist does not list it' {
+        $r = Invoke-Fixture 'skipped-default' @{ 'Skip.Tests.ps1' = $script:Skipped }
+        $r.Code | Should -Be 1
+    }
+    It 'rejects the child tests of a skipped Describe' {
+        $t = "Describe 'sd' -Skip:`$true { It 'a' { 1 | Should -Be 1 }; It 'b' { 1 | Should -Be 1 } }"
+        $r = Invoke-Fixture 'skipped-describe' @{ 'Good.Tests.ps1' = $script:Good; 'SkipD.Tests.ps1' = $t } -Allow ''
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match '2 skipped test'
+    }
+    It 'accepts a skipped test that is allowlisted with a reason, and reports the counts' {
+        $r = Invoke-Fixture 'allowed' @{ 'Good.Tests.ps1' = $script:Good; 'Skip.Tests.ps1' = $script:Skipped } -Allow "# comment`n`nsk.skipped it | needs a tool the runner lacks"
+        $r.Code | Should -Be 0
+        $r.Output | Should -Match '1 skipped \(1 allowlisted\)'
+        $r.Output | Should -Match '1 evaluated'
+    }
+    It 'reports zero skipped on a clean run' {
+        $r = Invoke-Fixture 'clean-count' @{ 'Good.Tests.ps1' = $script:Good } -Allow ''
+        $r.Code | Should -Be 0
+        $r.Output | Should -Match '0 skipped'
+    }
+    It 'rejects an allowlist entry without a reason' {
+        foreach ($line in 'sk.skipped it', 'sk.skipped it |', 'sk.skipped it |   ') {
+            $r = Invoke-Fixture ('noreason' + [guid]::NewGuid().ToString('N')) @{ 'Skip.Tests.ps1' = $script:Skipped } -Allow $line
+            $r.Code | Should -Be 1 -Because "'$line' has no reason"
+            $r.Output | Should -Match 'allowlist entry without a reason'
+        }
+    }
+    It 'rejects a missing allowlist file that was named explicitly' {
+        $r = Invoke-Fixture 'nofile' @{ 'Good.Tests.ps1' = $script:Good } -AllowPath (Join-Path $TestDrive 'absent.txt')
+        $r.Code | Should -Be 1
+        $r.Output | Should -Match 'allowlist .* not found'
+    }
+    It 'still lists a stale allowlist entry as a note without failing' {
+        $r = Invoke-Fixture 'stale' @{ 'Good.Tests.ps1' = $script:Good } -Allow 'gone.test | no longer skipped'
+        $r.Code | Should -Be 0
+        $r.Output | Should -Match 'allowlisted but not skipped: gone.test'
     }
 }
