@@ -36,6 +36,9 @@ flag it too.
   [docs/live-run-log.md](../../docs/live-run-log.md)): tag audit exit 0 with 7 resources; ownership audit exit 1,
   listing `vm-traffic`, `vm-traffic-nic`, the OS disk and the shutdown schedule. The target resources of the
   deployment operations were the resource ids the comparison expects.
+- **Observed 2026-11-08**, the newest full run (run `202611081831`, code at `0571f52`, a subscription with a policy
+  that installs the Guest Configuration extension): tag audit exit 0 with 7 resources; ownership audit exit 1 with 4
+  rows right after the VM (VM, NIC, OS disk, shutdown schedule) and with 6 rows after the demo 5 extension.
 - Run it again before each delivery and add a dated block to the log.
 
 ## On-stage sequence

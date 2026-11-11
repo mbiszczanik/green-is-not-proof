@@ -22,6 +22,10 @@ The analyser finds specific calls and conditions; it does not by itself show the
 `Deploy-Example.ps1 has no unguarded mutation` with `line 18: Register-AzResourceProvider`, the green one is
 `Deploy-Example.Fixed.ps1`. The process exit code was 0 without `-CI` and 1 with `-CI`.
 
+**Observed 2026-11-08**, the newest run (local part of the block of run `202611081831`, code at `0571f52`, see
+[docs/live-run-log.md](../../docs/live-run-log.md)): `Tests Passed: 1, Failed: 1`; process exit 1 with `-CI`, 0
+without. That block does not name the tests, so the test names above stay cited from 2026-11-04.
+
 Offline, no Azure call. **Observed 2026-11-03** (code at `1992109`, recorded in PR #2): red on `Deploy-Example.ps1`,
 green on `Deploy-Example.Fixed.ps1`. **Observed 2026-11-03** in the demo subscription, each script run alone with
 `-DryRun` under an account that can write: `Deploy-Example.ps1` left one write operation in the Activity Log

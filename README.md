@@ -37,12 +37,17 @@ Each rule has a command and its limits in the [cheat sheet](docs/cheat-sheet.md)
 
 ## Status
 
-The current setup, demos 0, 1, 3 and 5 and the teardown with read-back were observed live on 2026-11-03
-(swedencentral, runs `202611031935` and `202611032044`, every step exit 0 except the ownership audit, which exits 1
-by design; afterwards no resource group or tagged resource was left). Demo 4 ran locally (no Azure) and demo 2 is
-offline by design. The Activity Log check behind rule 3 was observed on 2026-11-03 under a write-capable
-account, and the Reader-only refusal on 2026-11-04 (403, no log entry). The cheat sheet command for rule 1 and the demo 2
-suite on current code were observed on 2026-11-04. Demos 0, 1, 2, 4, 5, 6 and 7 have a backup recording.
+The newest full run is of 2026-11-08 (swedencentral, run `202611081831`, code at `0571f52`). The setup, demos 0, 1,
+3 and 5 and the teardown with read-back were observed live: every step exit 0 except the ownership audit, which exits
+1 by design; afterwards no resource group or tagged resource was left. Demos 2, 4, 6 and 7 ran locally (no Azure) in
+the same block, with the exit codes recorded there; demo 2 is offline by design.
+
+That run did not repeat three checks, so their newest observation is older: the Activity Log check behind rule 3
+(2026-11-03, under a write-capable account), the Reader-only refusal (2026-11-04, 403, no log entry) and the cheat
+sheet command for rule 1 (2026-11-04).
+
+Demos 0, 1, 2, 4, 5, 6 and 7 have a backup recording. The author's review of the demo 2 recording is owed: no date or
+result is recorded (see [docs/talk-evidence.md](docs/talk-evidence.md), "Not yet observed").
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a

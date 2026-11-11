@@ -69,6 +69,9 @@ Local paths in the output are printed as `.`, so a recording shows no user name.
 - **Observed 2026-11-05**, a stage risk: on the first `Configured` run after a cold start PSRule printed
   `Bicep compilation hasn't completed within the timeout window` and the gate failed with exit 1 and 0 rules
   processed; the next run completed normally.
+- **Observed 2026-11-08**, the newest run (local part of the block of run `202611081831`, code at `0571f52`): `Bare`
+  on `Misconfigured` exit 0 with `Rules evaluated: 0`; `Fixed` on `Misconfigured` exit 1; `Fixed` on `Configured` exit
+  1 with `Rules processed: 21, failed: 8`. That block does not record the module versions.
 - Run it again before each delivery and add a dated block to the log.
 
 ## Tests

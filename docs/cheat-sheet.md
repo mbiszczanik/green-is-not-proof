@@ -34,7 +34,8 @@ Get-AzDiagnosticSetting -ResourceId "$($storage.Id)/blobServices/default"
 ```
 
 Observed on 2026-11-03 (earlier setup): after deleting and recreating the account with the same name, the old
-setting was listed on the new account. It settles that one child type is left behind; other child types need
+setting was listed on the new account. Observed again in the newest full run, 2026-11-08 (run `202611081831`, current
+setup, through demo 1): `Diagnostic settings on the NEW account: diag-to-log`. It settles that one child type is left behind; other child types need
 their own listing.
 
 ## 3. A dry-run switch is a declaration
