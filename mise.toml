@@ -1,0 +1,9 @@
+# Same commands as CI; the one local check entry point for every contributor.
+
+[tasks.check]
+description = "Offline lane CI runs: Pester, PSScriptAnalyzer, Bicep lint, markdown lint, public content"
+run = "pwsh -NoProfile -File tools/Invoke-Check.ps1 -Lane Full"
+
+[tasks."check:fast"]
+description = "PSScriptAnalyzer and public content: seconds, no credentials, no Azure call"
+run = "pwsh -NoProfile -File tools/Invoke-Check.ps1 -Lane Fast"
