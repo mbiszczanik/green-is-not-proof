@@ -24,8 +24,9 @@ Describe 'gallery: exit code swallowed by a pipe (pwsh -File, child processes)' 
         $r.Code | Should -Be 1 -Because $r.Text
     }
     It 'both variants run the same inner command through the same pipe' {
-        $before = Get-InnerLine 'before.ps1'
-        $after = Get-InnerLine 'after.ps1'
+        # @(): a one-line result comes back as a string, and [0] of a string is a char.
+        $before = @(Get-InnerLine 'before.ps1')
+        $after = @(Get-InnerLine 'after.ps1')
         $before.Count | Should -Be 1
         $after.Count | Should -Be 1
         $after[0] | Should -BeExactly $before[0]
