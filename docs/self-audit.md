@@ -93,10 +93,32 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 - Fix: the rogue VM gets a free auto-shutdown schedule 3 hours ahead, and the README suggests a budget alert on the
   test subscription. The generated SSH key is deleted after a clean teardown.
 
+## The CI gate accepted skipped tests
+
+- Green: the Pester gate accepted the suite.
+- Evidence: the gate rejected failed, not-run and zero tests but never read the skipped count. CI installed only
+  Pester, so the real-rule tests of demo 7 were skipped and CI stayed green. A test that checked "module not
+  installed" was itself skipped whenever the module was installed.
+- Fix: the gate prints the skipped count and fails on a skipped test that is not on `tools/ci-skip-allow.txt` with a
+  reason. CI installs PSRule, PSRule.Rules.Azure and the Bicep CLI so those tests run. The "not installed" test no
+  longer depends on the module being absent. Tests run a suite with one skipped, unlisted test through the gate and
+  expect exit 1. A run in which every test is skipped and allowlisted is rejected too (`no test was evaluated`).
+
 ## Still open
 
-The reworked setup, demo 0, demo 1, demo 3 and the teardown read-back ran live once on 2026-11-03 (see
-[live-run-log.md](live-run-log.md)). The gate demo that replaces demo 3 on stage (demo 4) and the module A demo
-(demo 5) were added afterwards. The rule 3 Activity Log check was observed afterwards (write-capable
-account) and the Reader-only refusal was observed on 2026-11-04 (403, no log entry). Still open and tracked in #3
-and #4: the backup recordings.
+The reworked setup, demos 0, 1, 3 and 5 and the teardown read-back last ran live in the full run of 2026-11-08 (run
+`202611081831`, code at `0571f52`, see [live-run-log.md](live-run-log.md)); demos 2, 4, 6 and 7 ran locally in the
+same block. That run did not repeat the rule 3 Activity Log check (observed 2026-11-03, write-capable account) or the
+Reader-only refusal (observed 2026-11-04, 403, no log entry), so those dates are their newest observation.
+
+The backup recordings are no longer open as a whole. The README and the live-run log record one for demos 0, 1, 2, 4,
+5, 6 and 7, made on 2026-11-07 and 2026-11-08; none is recorded for demo 3, which is off stage. No recording file is
+tracked in this repository (`recordings/raw/` is gitignored), so this page repeats that record and does not verify
+the files.
+
+Open:
+
+- The author's review of the demo 2 recording is owed. PR #31 asked not to merge before that review; it merged on
+  2026-11-08, and no file in this repository records a review date or a result.
+- The identifier scan of the recordings, due at D-2 (see [talk-evidence.md](talk-evidence.md)): no result is recorded.
+- A remake of the demo 5 recording is tracked in #41; the recordings as a whole are tracked in #3.

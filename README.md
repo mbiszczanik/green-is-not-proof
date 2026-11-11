@@ -37,12 +37,17 @@ Each rule has a command and its limits in the [cheat sheet](docs/cheat-sheet.md)
 
 ## Status
 
-The current setup, demos 0, 1, 3 and 5 and the teardown with read-back were observed live on 2026-11-03
-(swedencentral, runs `202611031935` and `202611032044`, every step exit 0 except the ownership audit, which exits 1
-by design; afterwards no resource group or tagged resource was left). Demo 4 ran locally (no Azure) and demo 2 is
-offline by design. The Activity Log check behind rule 3 was observed on 2026-11-03 under a write-capable
-account, and the Reader-only refusal on 2026-11-04 (403, no log entry). The cheat sheet command for rule 1 and the demo 2
-suite on current code were observed on 2026-11-04. Demos 0, 1, 2, 4, 5, 6 and 7 have a backup recording.
+The newest full run is of 2026-11-08 (swedencentral, run `202611081831`, code at `0571f52`). The setup, demos 0, 1,
+3 and 5 and the teardown with read-back were observed live: every step exit 0 except the ownership audit, which exits
+1 by design; afterwards no resource group or tagged resource was left. Demos 2, 4, 6 and 7 ran locally (no Azure) in
+the same block, with the exit codes recorded there; demo 2 is offline by design.
+
+That run did not repeat three checks, so their newest observation is older: the Activity Log check behind rule 3
+(2026-11-03, under a write-capable account), the Reader-only refusal (2026-11-04, 403, no log entry) and the cheat
+sheet command for rule 1 (2026-11-04).
+
+Demos 0, 1, 2, 4, 5, 6 and 7 have a backup recording. The author's review of the demo 2 recording is owed: no date or
+result is recorded (see [docs/talk-evidence.md](docs/talk-evidence.md), "Not yet observed").
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a
@@ -96,10 +101,10 @@ Then run the demos in order. Each has its own README with the on-stage steps:
 5. [Demo 4: a gate you never saw red](demos/4-gate-never-red/README.md) (local, no Azure; the talk's core, act 2)
 6. [Demo 5: existing is not working](demos/5-exists-is-not-healthy/README.md) (module A; run
    `./demos/5-exists-is-not-healthy/New-FailedExtension.ps1` after demo 0 and before the talk)
-7. [Demo 6: a gate that reads only the exit code](demos/6-lint-warns-gate-passes/README.md) (module C candidate; local,
+7. [Demo 6: a gate that reads only the exit code](demos/6-lint-warns-gate-passes/README.md) (module C; local,
    no Azure)
-8. [Demo 7: a gate that passes when nothing was evaluated](demos/7-unprocessed-object-passes/README.md) (module C
-   candidate; local, no Azure; needs the PSRule modules)
+8. [Demo 7: a gate that passes when nothing was evaluated](demos/7-unprocessed-object-passes/README.md) (module C;
+   local, no Azure; needs the PSRule modules)
 
 Tear everything down and read back what is left:
 
@@ -147,7 +152,10 @@ teardown. For a hard ceiling, set a budget alert on the test subscription once.
 Invoke-Pester ./tests -Output Detailed
 ```
 
-CI runs `./tests`, PSScriptAnalyzer (pinned), the Bicep linter (failing on warnings), markdownlint-cli2 (pinned) and
+CI runs `./tests` through `tools/Invoke-CiPester.ps1`, which prints the counts (total, passed, failed, skipped,
+evaluated) and fails on a run where no test passed or failed, and on a skipped test that is not listed with a reason in `tools/ci-skip-allow.txt`. CI installs
+PSRule 2.9.0, PSRule.Rules.Azure 1.47.0 and the Bicep CLI 0.38.5 so the real-rule tests of demos 6 and 7 run, not
+skip. It also runs PSScriptAnalyzer (pinned), the Bicep linter (failing on warnings), markdownlint-cli2 (pinned) and
 the public-content check. The suites under `demos/` are excluded on purpose: the on-stage suites of demos 2 and 3
 are shown live, and demo 2 is meant to fail red.
 

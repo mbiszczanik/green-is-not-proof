@@ -1,6 +1,6 @@
 # Demo 7: a gate that passes when nothing was evaluated
 
-Module C candidate 2 (issue #10). `Assert-PSRule` exits 0 when no rule targeted the input: PSRule prints a warning,
+Module C, second demo (issue #10). `Assert-PSRule` exits 0 when no rule targeted the input: PSRule prints a warning,
 evaluates nothing and reports success. A gate that reads only the exit code passes a template that was never checked.
 The demo runs the same insecure template through the same gate twice, with and without the setting that makes PSRule
 read the Bicep file.
@@ -69,10 +69,15 @@ Local paths in the output are printed as `.`, so a recording shows no user name.
 - **Observed 2026-11-05**, a stage risk: on the first `Configured` run after a cold start PSRule printed
   `Bicep compilation hasn't completed within the timeout window` and the gate failed with exit 1 and 0 rules
   processed; the next run completed normally.
+- **Observed 2026-11-08**, the newest run (local part of the block of run `202611081831`, code at `0571f52`): `Bare`
+  on `Misconfigured` exit 0 with `Rules evaluated: 0`; `Fixed` on `Misconfigured` exit 1; `Fixed` on `Configured` exit
+  1 with `Rules processed: 21, failed: 8`. That block does not record the module versions.
 - Run it again before each delivery and add a dated block to the log.
 
 ## Tests
 
 `tests/UnprocessedGateDemo.Tests.ps1` runs in CI. It checks the program's logic with fixed input: the summary
 parser, the two gates on each exit code and summary, masking of local paths, and that a missing module exits 1. The
-tests that call the real rules are skipped when `PSRule.Rules.Azure` is not installed, which includes CI.
+tests that call the real rules are skipped when `PSRule.Rules.Azure` is not installed. CI installs PSRule, the rule
+module and the Bicep CLI (pinned to the versions under Results), so they run there, and the CI gate fails on any skipped
+test that is not on the allowlist `tools/ci-skip-allow.txt`.

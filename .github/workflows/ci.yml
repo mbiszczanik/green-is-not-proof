@@ -3,6 +3,8 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
     defaults:
       run:
         shell: pwsh
@@ -14,33 +16,20 @@ jobs:
         run: |
           Install-Module Pester -MinimumVersion 5.5 -MaximumVersion 5.99 -Force -Scope CurrentUser
           Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
-      - name: Pester
+          # Versions of the demo 7 runs recorded in docs/live-run-log.md; without them its real-rule tests would skip.
+          Install-Module PSRule -RequiredVersion 2.9.0 -Force -Scope CurrentUser
+          Install-Module PSRule.Rules.Azure -RequiredVersion 1.47.0 -Force -Scope CurrentUser
+      - name: Install Bicep CLI
         run: |
-          # The decision lives in the tool so a test can run it; it also rejects failed containers and blocks.
-          ./tools/Invoke-CiPester.ps1 -Path ./tests
+          az bicep install --version v0.38.5
           if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
-      - name: PSScriptAnalyzer
-        run: |
-          Import-Module PSScriptAnalyzer -RequiredVersion 1.25.0
-          $f = Invoke-ScriptAnalyzer -Path . -Recurse -Settings ./PSScriptAnalyzerSettings.psd1 |
-            Where-Object { $_.Severity -in 'Warning', 'Error' }
-          if ($f) {
-            $f | Format-Table -AutoSize | Out-String | Write-Host
-            $Host.SetShouldExit(1); exit 1
-          }
-      - name: Bicep lint
-        run: |
-          # Linter warnings exit 0, so the gate reads the diagnostics, not the exit code.
-          $out = az bicep lint --file infra/declared.bicep 2>&1 | Out-String
-          $code = $LASTEXITCODE
-          Write-Host $out
-          if ($code -ne 0 -or $out -cmatch ': (Warning|Error) ') { $Host.SetShouldExit(1); exit 1 }
-      - name: Markdown lint
-        env:
-          MARKDOWNLINT_CLI2_VERSION: 0.18.1
-        run: |
-          # Package and version joined at run time: "name@version" reads as an e-mail address to the public-content check.
-          npx --yes ('markdownlint-cli2' + [char]64 + $env:MARKDOWNLINT_CLI2_VERSION) "**/*.md"
+          $bicep = Join-Path $HOME '.azure/bin/bicep'
+          "PSRULE_AZURE_BICEP_PATH=$bicep" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Split-Path $bicep | Out-File -FilePath $env:GITHUB_PATH -Append
+          & $bicep --version
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+          # Warm the compiler once: a cold first compile hit PSRule's timeout in the demo 7 runs.
+          & $bicep build demos/7-unprocessed-object-passes/Storage.bicep --stdout | Out-Null
           if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
       - name: Deny list
         env:
@@ -51,11 +40,13 @@ jobs:
             Set-Content -LiteralPath $f -Value $env:GNP_DENY_LIST
             "GNP_DENY_PATH=$f" | Out-File -FilePath $env:GITHUB_ENV -Append
           }
-      - name: Public content
-        run: |
-          $deny = if ($env:GNP_DENY_PATH) { $env:GNP_DENY_PATH } else { Join-Path $env:RUNNER_TEMP 'no-deny.txt' }
-          ./tools/Test-PublicContent.ps1 -Path (git ls-files) -DenyListPath $deny
-          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          version: 2026.11.2
+          cache: false
+      - name: Offline checks
+        # Pester, PSScriptAnalyzer, Bicep lint, markdownlint and public content: the task a contributor runs locally.
+        run: mise run check
       - name: Public content in pull request commits
         if: github.event_name == 'pull_request'
         run: |
