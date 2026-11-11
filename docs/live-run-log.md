@@ -9,6 +9,99 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-11, test subscription, rule 3 under a Reader-only identity, run in a fresh run, code at `59e2b7f`
+
+Run by the author from 15:06 to 15:21 UTC. A user-assigned managed identity created inside the run's resource group,
+Reader on that group, attached to the run's VM; the calls were made from the VM (`az vm run-command invoke`, curl, token
+from the instance metadata endpoint). The demo script itself was not run as that identity; the same Azure operations were
+called by REST, as on 2026-11-04. The role assignment came from the Azure CLI (object id with principal type, no Microsoft
+Graph sign-in needed).
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | exit 0 after 70 s, exit 0 after 57 s; cost guard 0.293758 EUR for 2 hours |
+| `az identity create`, `az role assignment create` (Reader on the run group), `az vm identity assign` | each exit 0 |
+| Token from the instance metadata endpoint, as the identity | obtained |
+| `GET` the resource group | HTTP 200 |
+| `POST` `Microsoft.Insights/register` (subscription scope, what the example script calls) | HTTP 403 `AuthorizationFailed` |
+| `PATCH` a tag on the resource group (a write inside the Reader scope) | HTTP 403 `AuthorizationFailed` |
+| `Get-AzActivityLog -Caller <principal id>`, read 7 min after the calls | 0 entries for the identity; 3 entries in total in that window, none for the identity |
+| `Stop-DemoRun.ps1` | exit 0 after 139 s; afterwards `rg-gnp*` groups: 0, resources tagged `project=green-is-not-proof`: 0, role assignments scoped to any `rg-gnp*` group: 0, identity `id-gnp-reader` listed: 0 |
+
+What differed from the expected output: nothing. The `az role assignment create` output field for the role name came
+back empty (the query used a field the command does not return); that the role was Reader rests on the read succeeding
+and both writes being refused.
+
+Not covered by this pass: the Portal and a teardown that fails the read-back.
+
+### 2026-11-11, test subscription, rule 3 (Activity Log after a dry run), code at `34bf7cb`
+
+Run by the author from 14:27 to 14:35 UTC with the author's own account, which can write (not Reader-only), on
+PowerShell 7.6.10. `Microsoft.Insights` was already `Registered`, so the call changed nothing. Each script as
+`pwsh -NoProfile -File <script> -DryRun`; `Deploy-Example.Fixed.ps1` first, then two minutes later `Deploy-Example.ps1`;
+the log was read once, five minutes after the second script, with `Get-AzActivityLog -Caller <account>` filtered to
+`Authorization.Action -notlike '*/read'`.
+
+| Step | Observed |
+| --- | --- |
+| `Deploy-Example.Fixed.ps1 -DryRun` (14:27:55 to 14:27:56) | exit 0; no write entry in its window |
+| `Deploy-Example.ps1 -DryRun` (14:29:58) | exit 0; 2 entries of `Microsoft.Insights/register/action`, one correlation id, stamped 14:29:58 and 14:29:59 |
+| Other write entries in the query | 7 `resourcegroups/delete` entries between 14:30 and 14:31 for the resources of run `202611111517`, which `Stop-DemoRun.ps1` had deleted at 14:22: the Activity Log shows the delete late. They are not from the dry-run scripts |
+
+What differed from the expected output: nothing for the two scripts; the log held the entries within five minutes of the
+run, as on 2026-11-03.
+
+### 2026-11-11, test subscription, `swedencentral`, run `202611111517`, code at `34bf7cb` (branch of PR #43), second pass
+
+Run by the author from 14:16 to 14:22 UTC on PowerShell 7.6.10, after the pass below, to cover the demos it did not. Every
+command as `pwsh -NoProfile -File <script>` (Pester as `Invoke-Pester ... -CI`), exit code from the process.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | exit 0 after 44 s, exit 0 after 58 s; cost guard 0.293758 EUR for 2 hours |
+| Demo 0, `Invoke-TagAudit.ps1`, before and after the extension | exit 0 both times; "All 7 resources carry project tags: OK" |
+| Demo 0, `Invoke-OwnershipAudit.ps1`, right after the VM | exit 1; 4 rows: OS disk, VM, shutdown schedule, NIC |
+| Demo 0, `Invoke-OwnershipAudit.ps1`, after `New-FailedExtension.ps1` | exit 1; 5 rows, the fifth is `vm-traffic/gnp-failing-script` (the extension carries no tag, so the tag audit still counts 7) |
+| Demo 3, `Show-LiveProperty.ps1` | exit 0; `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `Show-ExistenceVsState.ps1 -ExpectFailed` | exit 0 |
+| Demo 2, `Invoke-Pester ./demos/2-dry-run-is-not-safe -CI` | process exit 1; `Passed: 1, Failed: 1` |
+| Demo 3, `Invoke-Pester ./demos/3-stub-proves-assumption -CI` | process exit 0; `Passed: 1, Failed: 0` |
+| Demo 4, `Invoke-Gate.ps1` `Silent`/`Empty`, `Counted`/`Empty`, `Fixed`/`Empty`, `Fixed`/`Ok` | runner exit 0, 0, 1, 0 |
+| Demo 6, `Invoke-Gate.ps1` `Bare`/`Sample`, `Fixed`/`Sample`, `Bare`/`Clean`, `Fixed`/`Clean` | runner exit 0, 1, 0, 0 |
+| Demo 7, `Invoke-Gate.ps1` `Bare`/`Misconfigured`, `Fixed`/`Misconfigured`, `Fixed`/`Configured`, `Bare`/`Configured` | runner exit 0, 1, 1, 1; the two `Configured` runs print `Rules processed: 21, failed: 8, errored: 0`; the failed rules include `Azure.Storage.MinTLS` (AZR-000200) and `Azure.Storage.BlobPublicAccess` (AZR-000198) |
+| `Stop-DemoRun.ps1` | exit 0 after 139 s; after teardown `rg-gnp*` groups: 0, resources tagged `project=green-is-not-proof`: 0 |
+
+What differed from the expected output: nothing. No policy of this subscription added an extension, so the ownership
+audit showed 4 rows and then 5.
+
+Not covered by this pass: the Portal, a Reader-only identity and a teardown that fails the read-back (the dry run with the
+Activity Log, rule 3, is the block above).
+
+### 2026-11-11, test subscription, `swedencentral`, run `202611111504`, code at `c9a3e9f` (branch of PR #43)
+
+Run by the author from 14:04 to 14:11 UTC on PowerShell 7.6.10. Every command as `pwsh -NoProfile -File <script>`, exit
+code from the process. The first two attempts stopped at the cost guard (the price API answered 429 Too Many Requests,
+nothing was created); the third ran as below.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | exit 0 after 73 s; cost guard 0.293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | exit 0 after 60 s |
+| Demo 5 before the extension exists, `Show-ExistenceVsState.ps1`, without and with `-ExpectFailed` | exit 1 and exit 1; both print `Existence check: FAIL (extension gnp-failing-script not found). Run New-FailedExtension.ps1 first.` |
+| `Get-AzVMExtension -ErrorAction Stop` for the missing extension | `ComputeCloudException`, `ErrorCode: ResourceNotFound`, StatusCode 404, message `The Resource 'Microsoft.Compute/virtualMachines/vm-traffic/extensions/gnp-failing-script' under resource group '<run group>' was not found.` |
+| `New-FailedExtension.ps1` | exit 0 after 34 s |
+| Demo 5, `Show-ExistenceVsState.ps1` (no flag) | exit 1; `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)` |
+| Demo 5, `Show-ExistenceVsState.ps1 -ExpectFailed` | exit 0; the same three lines |
+| Demo 1, `-Step Show`, `Delete`, `Recreate`, `Verify`, `List`, `Clean` | each exit 0; Verify: "Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account"; Clean: "Removed 1 diagnostic setting(s)" |
+| `Stop-DemoRun.ps1` | exit 0 after 197 s; resource group deleted and gone; nothing tagged `runId=202611111504` remains |
+| After teardown | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+What differed from the expected output: nothing in demos 1 and 5. The message of a missing extension names the extension
+path and `ResourceNotFound`, which is what the not-found check matches.
+
+Not covered by this run: the Portal, a missing-extension case under another Az version, the demo 0 audits, demos 2 to 4,
+6 and 7, and a new backup recording of demo 5 (green-is-not-proof#41).
+
 ### 2026-11-08, second test subscription, `swedencentral`, run `202611081831`, code at `0571f52` (main after PR #29)
 
 Run by the author from 17:30 to 17:40 UTC, in a subscription of a different directory than the blocks below; the

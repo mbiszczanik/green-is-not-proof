@@ -6,6 +6,15 @@ account reports success, but the setting may stay behind and attach to a new acc
 The rule: a successful delete is a declaration. The stronger check is listing the non-cascaded child resources, read
 back after the delete.
 
+## Why it is green
+
+The delete only has to remove the storage account, and it does: the call returns success. The diagnostic setting is a
+separate resource (a child of the account's blob service) that the delete did not remove. Observed: the setting was still
+there after the delete and was listed on a new account of the same name (2026-11-03 and 2026-11-05), and it could not be
+listed while the account was gone (2026-11-04, see [docs/live-run-log.md](../../docs/live-run-log.md)). Why Azure keeps
+the setting and attaches it to a same-named account is observed, cause not documented here. Nothing in the delete's
+success shows that the child is gone, which is why the check lists it.
+
 ## What each check settles
 
 | Check | Settles | Does not settle |
