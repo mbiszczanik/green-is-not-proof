@@ -1,6 +1,6 @@
 # Demo 7: a gate that passes when nothing was evaluated
 
-Module C candidate 2 (issue #10). `Assert-PSRule` exits 0 when no rule targeted the input: PSRule prints a warning,
+Module C, second demo (issue #10). `Assert-PSRule` exits 0 when no rule targeted the input: PSRule prints a warning,
 evaluates nothing and reports success. A gate that reads only the exit code passes a template that was never checked.
 The demo runs the same insecure template through the same gate twice, with and without the setting that makes PSRule
 read the Bicep file.

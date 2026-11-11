@@ -1,6 +1,6 @@
 # Demo 6: a gate that reads only the exit code
 
-Module C candidate 1 (issue #10). The Bicep linter prints a warning and still exits 0, so a gate that reads only the
+Module C, first demo (issue #10). The Bicep linter prints a warning and still exits 0, so a gate that reads only the
 process exit code passes a template the linter complained about. The demo runs the linter twice, through two gates, on
 the same template.
 
