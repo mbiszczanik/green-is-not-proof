@@ -73,9 +73,12 @@ extension is healthy.
 
 ## Results
 
-- Both observed runs below predate the exit-code contract above: they ran the script as it was then (exit 0 for state
-  `Failed`). Owed: a live run of `Show-ExistenceVsState.ps1` without and with `-ExpectFailed` against a real failed
-  extension, with the exit codes recorded in the live-run log, and a new backup recording of the on-stage run. Also owed: the exact Az text of a missing extension (the not-found check matches `ResourceNotFound` plus the extension path).
+- **Observed 2026-11-11** (run `202611111504`, code at `c9a3e9f`): without `-ExpectFailed` exit 1, with it exit 0, both
+  with the three lines above; before the extension existed both modes exit 1 with "Run New-FailedExtension.ps1 first".
+  The Az error for a missing extension is `ResourceNotFound` (404) naming the extension path. See
+  [docs/live-run-log.md](../../docs/live-run-log.md). Owed: a new backup recording of the on-stage run (#41).
+- The two observed runs below predate the exit-code contract above: they ran the script as it was then (exit 0 for state
+  `Failed`).
 - **Observed 2026-11-08** (run `202611081831`, code at `0571f52`, a subscription with a policy that installs the Guest
   Configuration extension): `New-FailedExtension.ps1` exit 0 after 39 s and `Show-ExistenceVsState.ps1` exit 0 with the
   three lines above. In that subscription the ownership audit of demo 0 lists 6 rows after this step (VM, NIC, disk,

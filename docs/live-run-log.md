@@ -9,6 +9,31 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-11, test subscription, `swedencentral`, run `202611111504`, code at `c9a3e9f` (branch of PR #43)
+
+Run by the author from 14:04 to 14:11 UTC on PowerShell 7.6.10. Every command as `pwsh -NoProfile -File <script>`, exit
+code from the process. The first two attempts stopped at the cost guard (the price API answered 429 Too Many Requests,
+nothing was created); the third ran as below.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | exit 0 after 73 s; cost guard 0.293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | exit 0 after 60 s |
+| Demo 5 before the extension exists, `Show-ExistenceVsState.ps1`, without and with `-ExpectFailed` | exit 1 and exit 1; both print `Existence check: FAIL (extension gnp-failing-script not found). Run New-FailedExtension.ps1 first.` |
+| `Get-AzVMExtension -ErrorAction Stop` for the missing extension | `ComputeCloudException`, `ErrorCode: ResourceNotFound`, StatusCode 404, message `The Resource 'Microsoft.Compute/virtualMachines/vm-traffic/extensions/gnp-failing-script' under resource group '<run group>' was not found.` |
+| `New-FailedExtension.ps1` | exit 0 after 34 s |
+| Demo 5, `Show-ExistenceVsState.ps1` (no flag) | exit 1; `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)` |
+| Demo 5, `Show-ExistenceVsState.ps1 -ExpectFailed` | exit 0; the same three lines |
+| Demo 1, `-Step Show`, `Delete`, `Recreate`, `Verify`, `List`, `Clean` | each exit 0; Verify: "Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account"; Clean: "Removed 1 diagnostic setting(s)" |
+| `Stop-DemoRun.ps1` | exit 0 after 197 s; resource group deleted and gone; nothing tagged `runId=202611111504` remains |
+| After teardown | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+What differed from the expected output: nothing in demos 1 and 5. The message of a missing extension names the extension
+path and `ResourceNotFound`, which is what the not-found check matches.
+
+Not covered by this run: the Portal, a missing-extension case under another Az version, the demo 0 audits, demos 2 to 4,
+6 and 7, and a new backup recording of demo 5 (green-is-not-proof#41).
+
 ### 2026-11-08, second test subscription, `swedencentral`, run `202611081831`, code at `0571f52` (main after PR #29)
 
 Run by the author from 17:30 to 17:40 UTC, in a subscription of a different directory than the blocks below; the
