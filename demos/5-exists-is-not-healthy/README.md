@@ -71,6 +71,17 @@ only moves the question: with it, exit 0 means "the demo showed its point", neve
 With `-ExpectFailed`, exit 0 means the expected failure was reproduced (the extension exists in state `Failed`), not that the
 extension is healthy.
 
+## Tool versions and timing
+
+- Both scripts first print a `Tool versions:` line for PowerShell, Az.Accounts and Az.Compute. A tool whose version
+  differs from the one the result was observed with gets a `WARNING:` line naming both versions. No run in the log
+  records a version for these three, so today they are printed under `Not compared`
+  (`config/demo-tools.psd1` holds the observed versions).
+- Expected duration: `New-FailedExtension.ps1` took 37 s (2026-11-03) and 39 s (2026-11-08); it waits up to five
+  minutes, reading the state every 15 s. `Show-ExistenceVsState.ps1` is one Azure read and is not timed yet.
+- Warm-up: `New-FailedExtension.ps1` is the warm-up. Run it before the talk, after demo 0; only
+  `Show-ExistenceVsState.ps1` runs on stage.
+
 ## Results
 
 - **Observed 2026-11-11** (run `202611111504`, code at `c9a3e9f`): without `-ExpectFailed` exit 1, with it exit 0, both

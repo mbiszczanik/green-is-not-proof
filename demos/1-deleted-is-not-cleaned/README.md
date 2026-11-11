@@ -29,7 +29,7 @@ and writes `out/run.json`, which every step reads (or pass `-RunId`).
 
 ## On stage
 
-Each step prints one masked line.
+Each step prints one masked line; `Show` prints the tool versions before it (see Tool versions and timing).
 
 | Step | Command | Prints |
 | --- | --- | --- |
@@ -40,6 +40,18 @@ Each step prints one masked line.
 | 5 | `-Step Clean` | `Removed <n> diagnostic setting(s)` |
 
 The point lands at step 4: the delete was green, and the old setting is still listed on the new account.
+
+## Tool versions and timing
+
+- `-Step Show` and `-Step Verify` first print a `Tool versions:` line for PowerShell, Az.Accounts, Az.Storage and
+  Az.Monitor; the other steps keep to their one line. A tool whose version differs from the one the result was observed
+  with gets a `WARNING:` line naming both versions. No run in the log records a version for these four, so today they
+  are printed under `Not compared` (`config/demo-tools.psd1` holds the observed versions).
+- Expected duration: not timed per step yet. The one known wait is step 3: while Azure still holds the deleted
+  account's name, `Recreate` retries every 5 s for up to 60 s, then fails with `try again shortly`. One retry was
+  observed on 2026-11-04 (run `202611041553`), none on 2026-11-05 (run `202611052136`). Have a sentence ready for
+  that minute.
+- Warm-up: none is known. The preparation check below is the rehearsal.
 
 ## Preparation check
 

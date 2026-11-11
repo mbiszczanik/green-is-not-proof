@@ -3,6 +3,7 @@
 Demo 1: a diagnostic setting survives its storage account's deletion and re-attaches to a recreated account of the same name.
 .DESCRIPTION
 One step per run, one masked line each, so the speaker advances on stage: Show, Delete, Recreate, List, Clean.
+Show and Verify print the tool versions first.
 Verify is the preparation check, not a stage step: after Recreate it exits 1 unless diag-to-log is listed on the new account.
 Uses the run's storage account and its diag-to-log setting on the blob service. Needs a run from
 scripts/Start-DemoRun.ps1 (-RunId, else out/run.json). Creates nothing beyond the run's own account.
@@ -22,6 +23,7 @@ $ErrorActionPreference = 'Stop'
 . $PSScriptRoot/../../lib/RunContext.ps1
 . $PSScriptRoot/../../lib/Mask.ps1
 . $PSScriptRoot/../../lib/DiagnosticSettings.ps1
+. $PSScriptRoot/../../lib/ToolVersion.ps1
 
 function Invoke-DiagnosticSettingLeftover {
     <#
@@ -117,6 +119,8 @@ function Invoke-DiagnosticSettingLeftover {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
+    # Once per pass through the demo: its first stage step and the preparation check. The other steps keep to one line.
+    if ($Step -in 'Show', 'Verify') { Write-DemoToolVersion -Demo Demo1 }
     if (-not $OutDir) { $OutDir = Join-Path $PSScriptRoot '../../out' }
     $code = Invoke-DiagnosticSettingLeftover -Step $Step -RunId $RunId -OutDir $OutDir
     if ($code -ne 0) { exit 1 }

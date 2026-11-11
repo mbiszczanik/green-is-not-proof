@@ -18,6 +18,7 @@ $ErrorActionPreference = 'Stop'
 . $PSScriptRoot/../../lib/RunContext.ps1
 . $PSScriptRoot/../../lib/Mask.ps1
 . $PSScriptRoot/../../lib/Ownership.ps1
+. $PSScriptRoot/../../lib/ToolVersion.ps1
 
 function Invoke-TagAudit {
     <#
@@ -52,6 +53,7 @@ function Invoke-TagAudit {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
+    Write-DemoToolVersion -Demo Demo0
     if (-not $OutDir) { $OutDir = Join-Path $PSScriptRoot '../../out' }
     $code = Invoke-TagAudit -RunId $RunId -OutDir $OutDir
     if ($code -ne 0) { exit 1 }

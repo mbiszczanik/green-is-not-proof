@@ -106,6 +106,10 @@ Then run the demos in order. Each has its own README with the on-stage steps:
 8. [Demo 7: a gate that passes when nothing was evaluated](demos/7-unprocessed-object-passes/README.md) (module C;
    local, no Azure; needs the PSRule modules)
 
+Each demo first prints the versions of the tools it depends on, and a `WARNING:` line naming both versions when one
+differs from the version its result was observed with (`config/demo-tools.psd1`, taken from the live run log). A tool
+with no recorded version is printed under `Not compared`. Each demo README states its timing and warm-up step.
+
 Tear everything down and read back what is left:
 
 ```powershell

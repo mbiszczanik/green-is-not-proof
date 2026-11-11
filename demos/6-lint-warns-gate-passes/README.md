@@ -50,6 +50,18 @@ not show how common this is, and a gate that treats warnings as failures may be 
 
 Local paths in the linter output are printed as `.`, so a recording shows no user name.
 
+## Tool versions and timing
+
+- Each run first prints a `Tool versions:` line for PowerShell and the Bicep CLI, then an empty line; the expected
+  output above follows it. The Bicep CLI is asked the way the linter is found: `bicep`, else `az bicep`. The result was
+  observed with Bicep CLI 0.38.5 (2026-11-04); on any other version the run prints
+  `WARNING: Bicep CLI is <version>; this demo's result was observed with Bicep CLI 0.38.5.` No run records the
+  PowerShell version of this demo, so PowerShell is printed under `Not compared`. `config/demo-tools.psd1` holds the
+  observed versions.
+- Expected duration: not timed yet. Each run starts the Bicep CLI twice, once for its version and once for the lint.
+- Warm-up: none is known for the `bicep` route. The `az bicep` route was not run through the demo scripts (see the
+  log), so its start-up time is unknown.
+
 ## Results
 
 - **Observed 2026-11-04** (Bicep CLI 0.38.5, run locally, see [docs/live-run-log.md](../../docs/live-run-log.md)):

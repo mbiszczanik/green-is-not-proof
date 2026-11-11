@@ -16,6 +16,15 @@ operations in the Activity Log. This demo shows only the fast pre-check, a synta
 
 The analyser finds specific calls and conditions; it does not by itself show the safety of a whole script.
 
+## Tool versions and timing
+
+- The suite first prints a `Tool versions:` line for PowerShell and Pester (from its `BeforeAll`, so it shows with
+  `-Output Detailed`). A tool whose version differs from the one the result was observed with gets a `WARNING:` line
+  naming both versions. No run in the log records a version for these two, so today they are printed under
+  `Not compared` (`config/demo-tools.psd1` holds the observed versions).
+- Expected duration: not timed yet. The suite is two tests that parse two short files, offline.
+- Warm-up: none is known.
+
 ## Results
 
 **Observed 2026-11-04** (code at `31fc36f`): the on-stage command gave `Tests Passed: 1, Failed: 1`; the red test is

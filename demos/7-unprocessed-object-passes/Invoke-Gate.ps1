@@ -20,6 +20,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. $PSScriptRoot/../../lib/ToolVersion.ps1
+
 function Get-PSRuleSummary {
     <#
     .SYNOPSIS
@@ -92,6 +94,8 @@ function Hide-LocalPath {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
+    # PSRule compiles with the Bicep CLI this variable names when it is set, else with the one on the path.
+    Write-DemoToolVersion -Demo Demo7 -BicepPath $env:PSRULE_AZURE_BICEP_PATH
     $path = Join-Path $PSScriptRoot 'Storage.bicep'
     $r = Invoke-PSRuleProcess -Path $path -ExpandBicep $(if ($Pipeline -eq 'Configured') { 'On' } else { 'Off' })
     # PSRule prints a banner and the help of every failed rule; keep the lines that carry the result.

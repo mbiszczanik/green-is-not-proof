@@ -18,6 +18,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. $PSScriptRoot/../../lib/ToolVersion.ps1
+
 function Invoke-Gate {
     <#
     .SYNOPSIS
@@ -44,6 +46,7 @@ function Invoke-Gate {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
+    Write-DemoToolVersion -Demo Demo4
     $stateFile = if ($State -eq 'Ok') { 'state-ok.json' } else { 'state-empty.json' }
     $code = Invoke-Gate -ScriptPath (Join-Path $PSScriptRoot "Test-Lab.$Script.ps1") -StatePath (Join-Path $PSScriptRoot $stateFile)
     exit $code

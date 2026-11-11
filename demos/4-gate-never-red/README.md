@@ -45,7 +45,8 @@ All three behaviours were found in SkyCraft:
 
 ## On stage
 
-Each run prints the validator's output, then the process exit code and the number of `[FAIL]` lines.
+Each run prints the tool versions, then the validator's output, then the process exit code and the number of `[FAIL]`
+lines.
 
 1. A validator that never sets an exit code:
 
@@ -71,6 +72,17 @@ Each run prints the validator's output, then the process exit code and the numbe
    Expected: `Process exit code: 1` for the empty state, `0` for the complete one.
 4. State what was shown: on this PowerShell version, these scripts, this input. The probe with an empty state is
    what makes the gate trustworthy. It does not show that every defect would turn the gate red.
+
+## Tool versions and timing
+
+- Each run first prints a `Tool versions:` line for PowerShell and Pester (the module the `#Requires` line of
+  `Counted` and `Fixed` imports). The result of step 2 was observed with PowerShell 7.6.9 (2026-11-03, run
+  `202611032044`); on any other version the run prints
+  `WARNING: PowerShell is <version>; this demo's result was observed with PowerShell 7.6.9.` If that line shows,
+  check step 2 before the stage: the lost exit code is behaviour of that PowerShell version. No run records a Pester
+  version, so Pester is printed under `Not compared`. `config/demo-tools.psd1` holds the observed versions.
+- Expected duration: not timed yet. Each run starts one child `pwsh` process and makes no network call.
+- Warm-up: none is known.
 
 ## Tests
 

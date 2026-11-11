@@ -19,6 +19,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. $PSScriptRoot/../../lib/ToolVersion.ps1
+
 function Get-LintFinding {
     <#
     .SYNOPSIS
@@ -84,6 +86,7 @@ function Hide-LocalPath {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
+    Write-DemoToolVersion -Demo Demo6
     $path = Join-Path $PSScriptRoot "$Template.bicep"
     try { $r = Invoke-BicepLint -Path $path }
     catch { Write-Host $_.Exception.Message; exit 1 }
