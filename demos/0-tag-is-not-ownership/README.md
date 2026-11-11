@@ -27,6 +27,17 @@ Prerequisites:
 Run demo 0 before demo 1: demo 1 recreates the storage account outside the deployment, and the audit would then
 flag it too.
 
+## Tool versions and timing
+
+- Both audits first print a `Tool versions:` line for PowerShell, Az.Accounts and Az.Resources. A tool whose version
+  differs from the one the result was observed with gets a `WARNING:` line naming both versions. No run in the log
+  records a version for these three, so today they are printed under `Not compared`
+  (`config/demo-tools.psd1` holds the observed versions).
+- Expected duration: not timed per audit yet. Recorded so far: on 2026-11-08 `Start-DemoRun.ps1` took 65 s and
+  `New-RogueResource.ps1` 44 s, and the whole sequence (setup, every demo, teardown) ran in a 10-minute window.
+- Warm-up: run the ownership audit once before the talk. The row count depends on subscription policy and on time
+  (4 rows right after the VM, 5 a few minutes later, 6 after the demo 5 extension; see step 2 below).
+
 ## Results
 
 - **Observed 2026-11-03**, earlier setup (the audit compared names with a hand-written list, code at `1992109`,

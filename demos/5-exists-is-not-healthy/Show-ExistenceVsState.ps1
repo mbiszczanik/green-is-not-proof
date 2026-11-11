@@ -19,6 +19,7 @@ $ErrorActionPreference = 'Stop'
 
 . $PSScriptRoot/../../lib/RunContext.ps1
 . $PSScriptRoot/../../lib/Mask.ps1
+. $PSScriptRoot/../../lib/ToolVersion.ps1
 
 $script:ExtensionName = 'gnp-failing-script'
 
@@ -86,6 +87,7 @@ function Invoke-ShowExistenceVsState {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
+    Write-DemoToolVersion -Demo Demo5
     if (-not $OutDir) { $OutDir = Join-Path $PSScriptRoot '../../out' }
     $code = Invoke-ShowExistenceVsState -RunId $RunId -OutDir $OutDir
     if ($code -ne 0) { exit 1 }

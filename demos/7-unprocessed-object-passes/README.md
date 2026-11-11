@@ -51,10 +51,22 @@ same template, so the template is rejected for the right reason.
 State what it settles: for this template, these module versions and this option, exit 0 and zero evaluated rules
 coexist. It does not show how common this is in real pipelines.
 
-Warm the Bicep compiler once before the stage (run the `Configured` pipeline once): the first run after a cold start
-hit PSRule's compile timeout on the author's machine (see Results), which makes the gate fail for a different reason.
-
 Local paths in the output are printed as `.`, so a recording shows no user name.
+
+## Tool versions and timing
+
+- Each run first prints a `Tool versions:` line for PowerShell, PSRule, PSRule.Rules.Azure and the Bicep CLI, then an
+  empty line; the expected output above follows it. For a module it is the highest installed version, the one the
+  child process imports. For the Bicep CLI it is the one `PSRULE_AZURE_BICEP_PATH` names when that variable is set,
+  else `bicep` on the path, else `az bicep`.
+- The result was observed with PowerShell 7.6.9, PSRule 2.9.0, PSRule.Rules.Azure 1.47.0 and Bicep CLI 0.38.5
+  (2026-11-05). For each tool on another version the run prints a line such as
+  `WARNING: PSRule is <version>; this demo's result was observed with PSRule 2.9.0.` A tool that is not found gets a
+  warning too. `config/demo-tools.psd1` holds the observed versions.
+- Expected duration: not timed yet. The `Configured` pipeline compiles the Bicep file and is the slower one.
+- Warm-up: run the `Configured` pipeline once before the stage. The first run after a cold start hit PSRule's compile
+  timeout on the author's machine (see Results), which makes the gate fail for a different reason; the next run
+  completed normally.
 
 ## Results
 

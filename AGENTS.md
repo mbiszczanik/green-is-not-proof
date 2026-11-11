@@ -6,6 +6,7 @@ Rules for everyone who changes this repository. Purpose and demo steps are in [R
 
 - `scripts/`: demo setup, rogue resource and teardown (PowerShell, they touch Azure).
 - `lib/`: functions the scripts share.
+- `config/`: the priced items of a run and the tool versions each demo's result was observed with.
 - `tools/`: CI helpers, the public-content check and its allowlists.
 - `tests/`: Pester suites, offline. The suites under `demos/` are shown live and excluded from CI on purpose.
 - `infra/`: the declared Bicep deployment.

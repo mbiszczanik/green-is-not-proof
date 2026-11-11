@@ -57,6 +57,17 @@ first check would report success. It does not show how common this is.
 The script exits 1, saying so, when the extension is missing or its state is anything other than `Failed`, so the demo
 never shows a pass it did not produce.
 
+## Tool versions and timing
+
+- Both scripts first print a `Tool versions:` line for PowerShell, Az.Accounts and Az.Compute. A tool whose version
+  differs from the one the result was observed with gets a `WARNING:` line naming both versions. No run in the log
+  records a version for these three, so today they are printed under `Not compared`
+  (`config/demo-tools.psd1` holds the observed versions).
+- Expected duration: `New-FailedExtension.ps1` took 37 s (2026-11-03) and 39 s (2026-11-08); it waits up to five
+  minutes, reading the state every 15 s. `Show-ExistenceVsState.ps1` is one Azure read and is not timed yet.
+- Warm-up: `New-FailedExtension.ps1` is the warm-up. Run it before the talk, after demo 0; only
+  `Show-ExistenceVsState.ps1` runs on stage.
+
 ## Results
 
 - **Observed 2026-11-08** (run `202611081831`, code at `0571f52`, a subscription with a policy that installs the Guest

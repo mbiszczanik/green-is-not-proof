@@ -1,4 +1,8 @@
-BeforeAll { . $PSScriptRoot/Test-WorkspaceHealth.ps1 }
+BeforeAll {
+    . $PSScriptRoot/Test-WorkspaceHealth.ps1
+    . $PSScriptRoot/../../lib/ToolVersion.ps1
+    Write-DemoToolVersion -Demo Demo3
+}
 
 Describe 'Strict workspace health, hand-written stub' {
     It 'passes for a stub object that has the property filled in' {

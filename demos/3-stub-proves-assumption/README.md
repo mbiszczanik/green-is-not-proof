@@ -31,6 +31,15 @@ This is a constructed example of the mechanism, not a claim that real health che
 case is in SkyCraft: two health checks demanded fields the service did not return, their tests passed on
 hand-written objects, and one live run showed the fields were empty.
 
+## Tool versions and timing
+
+- The stubbed suite first prints a `Tool versions:` line for PowerShell and Pester, the live read one for PowerShell,
+  Az.Accounts and Az.OperationalInsights. A tool whose version differs from the one the result was observed with gets
+  a `WARNING:` line naming both versions. No run in the log records a version for these tools, so today they are
+  printed under `Not compared` (`config/demo-tools.psd1` holds the observed versions).
+- Expected duration: not timed yet. The suite is one offline test; the live read is one Azure call.
+- Warm-up: none is known.
+
 ## Results
 
 - **Observed 2026-11-03**, on a workspace from the earlier setup (code at `1992109`, recorded in PR #2): the property
