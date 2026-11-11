@@ -75,4 +75,6 @@ Local paths in the output are printed as `.`, so a recording shows no user name.
 
 `tests/UnprocessedGateDemo.Tests.ps1` runs in CI. It checks the program's logic with fixed input: the summary
 parser, the two gates on each exit code and summary, masking of local paths, and that a missing module exits 1. The
-tests that call the real rules are skipped when `PSRule.Rules.Azure` is not installed, which includes CI.
+tests that call the real rules are skipped when `PSRule.Rules.Azure` is not installed. CI installs PSRule, the rule
+module and the Bicep CLI (pinned to the versions under Results), so they run there, and the CI gate fails on any skipped
+test that is not on the allowlist `tools/ci-skip-allow.txt`.

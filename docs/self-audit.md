@@ -93,6 +93,17 @@ fix. Fixes landed in the pull requests for issues #3 and #4.
 - Fix: the rogue VM gets a free auto-shutdown schedule 3 hours ahead, and the README suggests a budget alert on the
   test subscription. The generated SSH key is deleted after a clean teardown.
 
+## The CI gate accepted skipped tests
+
+- Green: the Pester gate accepted the suite.
+- Evidence: the gate rejected failed, not-run and zero tests but never read the skipped count. CI installed only
+  Pester, so the real-rule tests of demo 7 were skipped and CI stayed green. A test that checked "module not
+  installed" was itself skipped whenever the module was installed.
+- Fix: the gate prints the skipped count and fails on a skipped test that is not on `tools/ci-skip-allow.txt` with a
+  reason. CI installs PSRule, PSRule.Rules.Azure and the Bicep CLI so those tests run. The "not installed" test no
+  longer depends on the module being absent. Tests run a suite with one skipped, unlisted test through the gate and
+  expect exit 1. A run in which every test is skipped and allowlisted is rejected too (`no test was evaluated`).
+
 ## Still open
 
 The reworked setup, demo 0, demo 1, demo 3 and the teardown read-back ran live once on 2026-11-03 (see

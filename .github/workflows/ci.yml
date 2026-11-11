@@ -14,9 +14,25 @@ jobs:
         run: |
           Install-Module Pester -MinimumVersion 5.5 -MaximumVersion 5.99 -Force -Scope CurrentUser
           Install-Module PSScriptAnalyzer -RequiredVersion 1.25.0 -Force -Scope CurrentUser
+          # Versions of the demo 7 runs recorded in docs/live-run-log.md; without them its real-rule tests would skip.
+          Install-Module PSRule -RequiredVersion 2.9.0 -Force -Scope CurrentUser
+          Install-Module PSRule.Rules.Azure -RequiredVersion 1.47.0 -Force -Scope CurrentUser
+      - name: Install Bicep CLI
+        run: |
+          az bicep install --version v0.38.5
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+          $bicep = Join-Path $HOME '.azure/bin/bicep'
+          "PSRULE_AZURE_BICEP_PATH=$bicep" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Split-Path $bicep | Out-File -FilePath $env:GITHUB_PATH -Append
+          & $bicep --version
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
+          # Warm the compiler once: a cold first compile hit PSRule's timeout in the demo 7 runs.
+          & $bicep build demos/7-unprocessed-object-passes/Storage.bicep --stdout | Out-Null
+          if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
       - name: Pester
         run: |
-          # The decision lives in the tool so a test can run it; it also rejects failed containers and blocks.
+          # The decision lives in the tool so a test can run it; it also rejects failed containers and blocks,
+          # and any skipped test that is not on tools/ci-skip-allow.txt.
           ./tools/Invoke-CiPester.ps1 -Path ./tests
           if ($LASTEXITCODE -ne 0) { $Host.SetShouldExit(1); exit 1 }
       - name: PSScriptAnalyzer

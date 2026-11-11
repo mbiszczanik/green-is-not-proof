@@ -1,0 +1,4 @@
+# Tests the CI gate (Invoke-CiPester.ps1) lets stay skipped. One per line: <test path> | <reason>
+# <test path> is the Pester expanded path printed in the gate's rejection message.
+# A skipped test that is not listed here fails the gate; so does an entry without a reason.
+# Empty on purpose: CI installs PSRule, PSRule.Rules.Azure and the Bicep CLI, so the demo 6 and 7 tests run.

@@ -147,7 +147,10 @@ teardown. For a hard ceiling, set a budget alert on the test subscription once.
 Invoke-Pester ./tests -Output Detailed
 ```
 
-CI runs `./tests`, PSScriptAnalyzer (pinned), the Bicep linter (failing on warnings), markdownlint-cli2 (pinned) and
+CI runs `./tests` through `tools/Invoke-CiPester.ps1`, which prints the counts (total, passed, failed, skipped,
+evaluated) and fails on a run where no test passed or failed, and on a skipped test that is not listed with a reason in `tools/ci-skip-allow.txt`. CI installs
+PSRule 2.9.0, PSRule.Rules.Azure 1.47.0 and the Bicep CLI 0.38.5 so the real-rule tests of demos 6 and 7 run, not
+skip. It also runs PSScriptAnalyzer (pinned), the Bicep linter (failing on warnings), markdownlint-cli2 (pinned) and
 the public-content check. The suites under `demos/` are excluded on purpose: the on-stage suites of demos 2 and 3
 are shown live, and demo 2 is meant to fail red.
 

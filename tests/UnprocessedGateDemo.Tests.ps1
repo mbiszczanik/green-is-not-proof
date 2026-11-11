@@ -64,8 +64,11 @@ Describe 'Hide-LocalPath' {
 }
 
 Describe 'Invoke-PSRuleChild.ps1' {
-    It 'exits 1 and says so when PSRule.Rules.Azure is not installed' -Skip:$script:HasRules {
-        $out = @(& $script:Pwsh -NoProfile -File (Join-Path $script:Dir 'Invoke-PSRuleChild.ps1') -Path (Join-Path $script:Dir 'Storage.bicep') -ExpandBicep Off 2>&1 | ForEach-Object { "$_" })
+    It 'exits 1 and says so when PSRule.Rules.Azure is not installed' {
+        # A Get-Module stub that finds nothing stands in for a missing module, so this runs whether or not it is installed.
+        $child = Join-Path $script:Dir 'Invoke-PSRuleChild.ps1'
+        $cmd = "function Get-Module { }; & '$child' -Path '$(Join-Path $script:Dir 'Storage.bicep')' -ExpandBicep Off; exit `$LASTEXITCODE"
+        $out = @(& $script:Pwsh -NoProfile -Command $cmd 2>&1 | ForEach-Object { "$_" })
         $LASTEXITCODE | Should -Be 1
         ($out -join "`n") | Should -Match 'not installed'
     }
