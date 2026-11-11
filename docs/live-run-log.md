@@ -9,6 +9,32 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-11, test subscription, `swedencentral`, run `202611111517`, code at `34bf7cb` (branch of PR #43), second pass
+
+Run by the author from 14:16 to 14:22 UTC on PowerShell 7.6.10, after the pass below, to cover the demos it did not. Every
+command as `pwsh -NoProfile -File <script>` (Pester as `Invoke-Pester ... -CI`), exit code from the process.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1`, `New-RogueResource.ps1` | exit 0 after 44 s, exit 0 after 58 s; cost guard 0.293758 EUR for 2 hours |
+| Demo 0, `Invoke-TagAudit.ps1`, before and after the extension | exit 0 both times; "All 7 resources carry project tags: OK" |
+| Demo 0, `Invoke-OwnershipAudit.ps1`, right after the VM | exit 1; 4 rows: OS disk, VM, shutdown schedule, NIC |
+| Demo 0, `Invoke-OwnershipAudit.ps1`, after `New-FailedExtension.ps1` | exit 1; 5 rows, the fifth is `vm-traffic/gnp-failing-script` (the extension carries no tag, so the tag audit still counts 7) |
+| Demo 3, `Show-LiveProperty.ps1` | exit 0; `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `Show-ExistenceVsState.ps1 -ExpectFailed` | exit 0 |
+| Demo 2, `Invoke-Pester ./demos/2-dry-run-is-not-safe -CI` | process exit 1; `Passed: 1, Failed: 1` |
+| Demo 3, `Invoke-Pester ./demos/3-stub-proves-assumption -CI` | process exit 0; `Passed: 1, Failed: 0` |
+| Demo 4, `Invoke-Gate.ps1` `Silent`/`Empty`, `Counted`/`Empty`, `Fixed`/`Empty`, `Fixed`/`Ok` | runner exit 0, 0, 1, 0 |
+| Demo 6, `Invoke-Gate.ps1` `Bare`/`Sample`, `Fixed`/`Sample`, `Bare`/`Clean`, `Fixed`/`Clean` | runner exit 0, 1, 0, 0 |
+| Demo 7, `Invoke-Gate.ps1` `Bare`/`Misconfigured`, `Fixed`/`Misconfigured`, `Fixed`/`Configured`, `Bare`/`Configured` | runner exit 0, 1, 1, 1; the two `Configured` runs print `Rules processed: 21, failed: 8, errored: 0`; the failed rules include `Azure.Storage.MinTLS` (AZR-000200) and `Azure.Storage.BlobPublicAccess` (AZR-000198) |
+| `Stop-DemoRun.ps1` | exit 0 after 139 s; after teardown `rg-gnp*` groups: 0, resources tagged `project=green-is-not-proof`: 0 |
+
+What differed from the expected output: nothing. No policy of this subscription added an extension, so the ownership
+audit showed 4 rows and then 5.
+
+Not covered by this pass: the Portal, the dry run with the Activity Log (rule 3), a Reader-only identity and a teardown
+that fails the read-back.
+
 ### 2026-11-11, test subscription, `swedencentral`, run `202611111504`, code at `c9a3e9f` (branch of PR #43)
 
 Run by the author from 14:04 to 14:11 UTC on PowerShell 7.6.10. Every command as `pwsh -NoProfile -File <script>`, exit
