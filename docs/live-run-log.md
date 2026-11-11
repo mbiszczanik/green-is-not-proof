@@ -9,6 +9,23 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-11, test subscription, rule 3 (Activity Log after a dry run), code at `34bf7cb`
+
+Run by the author from 14:27 to 14:35 UTC with the author's own account, which can write (not Reader-only), on
+PowerShell 7.6.10. `Microsoft.Insights` was already `Registered`, so the call changed nothing. Each script as
+`pwsh -NoProfile -File <script> -DryRun`; `Deploy-Example.Fixed.ps1` first, then two minutes later `Deploy-Example.ps1`;
+the log was read once, five minutes after the second script, with `Get-AzActivityLog -Caller <account>` filtered to
+`Authorization.Action -notlike '*/read'`.
+
+| Step | Observed |
+| --- | --- |
+| `Deploy-Example.Fixed.ps1 -DryRun` (14:27:55 to 14:27:56) | exit 0; no write entry in its window |
+| `Deploy-Example.ps1 -DryRun` (14:29:58) | exit 0; 2 entries of `Microsoft.Insights/register/action`, one correlation id, stamped 14:29:58 and 14:29:59 |
+| Other write entries in the query | 7 `resourcegroups/delete` entries between 14:30 and 14:31 for the resources of run `202611111517`, which `Stop-DemoRun.ps1` had deleted at 14:22: the Activity Log shows the delete late. They are not from the dry-run scripts |
+
+What differed from the expected output: nothing for the two scripts; the log held the entries within five minutes of the
+run, as on 2026-11-03.
+
 ### 2026-11-11, test subscription, `swedencentral`, run `202611111517`, code at `34bf7cb` (branch of PR #43), second pass
 
 Run by the author from 14:16 to 14:22 UTC on PowerShell 7.6.10, after the pass below, to cover the demos it did not. Every
@@ -32,8 +49,8 @@ command as `pwsh -NoProfile -File <script>` (Pester as `Invoke-Pester ... -CI`),
 What differed from the expected output: nothing. No policy of this subscription added an extension, so the ownership
 audit showed 4 rows and then 5.
 
-Not covered by this pass: the Portal, the dry run with the Activity Log (rule 3), a Reader-only identity and a teardown
-that fails the read-back.
+Not covered by this pass: the Portal, a Reader-only identity and a teardown that fails the read-back (the dry run with the
+Activity Log, rule 3, is the block above).
 
 ### 2026-11-11, test subscription, `swedencentral`, run `202611111504`, code at `c9a3e9f` (branch of PR #43)
 
