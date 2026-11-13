@@ -63,7 +63,9 @@ Local paths in the output are printed as `.`, so a recording shows no user name.
   (2026-11-05). For each tool on another version the run prints a line such as
   `WARNING: PSRule is <version>; this demo's result was observed with PSRule 2.9.0.` A tool that is not found gets a
   warning too. `config/demo-tools.psd1` holds the observed versions.
-- Expected duration: not timed yet. The `Configured` pipeline compiles the Bicep file and is the slower one.
+- Expected duration (2026-11-13, local, Bicep CLI 0.44.1): `Fixed` on `Configured` 7.6 s and 7.9 s, `Bare` on
+  `Misconfigured` 5.1 s, `Fixed` on `Misconfigured` 3.0 s. The `Configured` pipeline compiles the Bicep file and is the
+  slower one.
 - Warm-up: run the `Configured` pipeline once before the stage. The first run after a cold start hit PSRule's compile
   timeout on the author's machine (see Results), which makes the gate fail for a different reason; the next run
   completed normally.
