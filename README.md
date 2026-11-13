@@ -10,7 +10,6 @@ The [cheat sheet](docs/cheat-sheet.md) collects four rules and their limits.
 - Title: "Green is not proof" (Polish subtitle: "Pułapki weryfikacji w Azure i jak je wyłapać")
 - Language: Polish, with everyday English industry terms
 - Audiences: community meetups of engineers and developers; a university guest lecture for engineering students
-- Write-up: TODO(author): link to the blog article
 
 The repository applies the talk to itself: [docs/self-audit.md](docs/self-audit.md) lists the checks in this
 repository that were declarations, and what the independent evidence showed.
