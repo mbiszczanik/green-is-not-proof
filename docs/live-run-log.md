@@ -9,6 +9,50 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-13, test subscription, `swedencentral`, run `202611132017`, code at `113f751`, demo 5 backup recording remade (#41)
+
+Run by the author. Azure scripts ran with an Az context built from the
+Azure CLI session, through the recorder's `Invoke-WithAzContext.ps1`; PowerShell 7.6.10, Az.Accounts 5.5.3,
+Az.Compute 11.9.0. The recording is a scripted VHS tape (`projects/green-is-not-proof/demo-5.tape` in the private
+recorder repository, with a step that prints the process exit code of the state check).
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1` | exit 0; cost guard 0.293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | exit 0; `vm-traffic` outside the deployment |
+| Demo 5, `New-FailedExtension.ps1` | exit 0; `VMExtensionProvisioningError`; extension reached `ProvisioningState Failed` |
+| Recording, `Invoke-Recording.ps1` on the demo 5 tape | exit 0; 17 s video; text copy scanned with 8 patterns, no hits |
+| Recorded output, `Show-ExistenceVsState.ps1` (no flag) | `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)`, then `exit code: 1` |
+| `Stop-DemoRun.ps1` | exit 0; resource group deleted and gone; nothing tagged `runId=202611132017` remains |
+
+Identifier review of the recording: the text copy was scanned (e-mail, GUID, drive path, local user name, the
+deny list) and the four frames sampled every 4 s were read in an automated review; none shows an account,
+tenant, subscription or resource id. The author's own review of the frames is still owed. The file is a local file outside git; it
+replaces the 2026-11-08 demo 5 recording, which predates the exit-code fix of #34 and is not to be used.
+
+What differed from the expected output: nothing. The tool-versions line prints `Not compared`, because no observed
+version is recorded for these three tools.
+
+#### Demo 7, same day, local, code at `113f751`, backup recording remade
+
+PowerShell 7.6.10, PSRule 2.9.0, PSRule.Rules.Azure 1.47.0, Bicep CLI 0.44.1 (the observed version is 0.38.5, so the
+run printed two `WARNING:` lines naming both versions). Every command as `pwsh -NoProfile -File`, exit code from the
+process.
+
+| Step | Observed |
+| --- | --- |
+| `Invoke-Gate.ps1 -Gate Fixed -Pipeline Configured`, twice | exit 1 both times, 7.6 s and 7.9 s; `Rules processed: 21, failed: 8`, `Fixed gate: FAIL` |
+| `-Gate Bare -Pipeline Misconfigured` | exit 0 in 5.1 s; `Rules evaluated: 0`, `The gate would PASS although no rule was evaluated.` |
+| `-Gate Fixed -Pipeline Misconfigured` | exit 1 in 3.0 s; `Fixed gate: FAIL` |
+| Recording, `Invoke-Recording.ps1` on the demo 7 tape | exit 0; text copy scanned with 8 patterns, no hits; the last of five sampled frames was read in an automated review |
+
+The recording shows the version warnings. It replaces the 2026-11-08 demo 7 recording, which predates #55 (corrected
+template). The author's own review of its frames is owed.
+
+Demo 6 was recorded the same day, local, at the same code: `Invoke-Recording.ps1` on the demo 6 tape exit 0, text copy scanned with 8 patterns, no hits;
+the output shows `Bare` on `Sample` as `PASS` with one Bicep warning and exit code 0, `Fixed` on `Sample` as `FAIL`, and `Bare` and
+`Fixed` on `Clean` as `PASS`. No frame of the demo 6 recording was reviewed; the author's review is owed.
+
 ### 2026-11-11, test subscription, rule 3 under a Reader-only identity, run in a fresh run, code at `59e2b7f`
 
 Run by the author from 15:06 to 15:21 UTC. A user-assigned managed identity created inside the run's resource group,
