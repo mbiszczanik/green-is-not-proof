@@ -3,7 +3,8 @@
 A green check in Azure is a declaration, not evidence.
 
 The PowerShell demos show checks that pass despite an underlying problem and ways to investigate their results.
-The [cheat sheet](docs/cheat-sheet.md) collects four rules and their limits.
+The [cheat sheet](docs/cheat-sheet.md) collects four rules and their limits. No Azure subscription? The
+[offline student pack](docs/student-pack/README.md) runs the offline demos with one command and has exercises.
 
 ## Talk
 
