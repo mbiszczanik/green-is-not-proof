@@ -15,6 +15,7 @@ pwsh -NoProfile -File ./scripts/Invoke-OfflinePack.ps1; $LASTEXITCODE
 .EXAMPLE
 pwsh -NoProfile -File ./scripts/Invoke-OfflinePack.ps1 -Demo 4
 #>
+#Requires -Version 7.0
 [CmdletBinding()]
 param([string[]]$Demo)
 Set-StrictMode -Version Latest
