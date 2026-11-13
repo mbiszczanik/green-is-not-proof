@@ -5,6 +5,9 @@ evaluates nothing and reports success. A gate that reads only the exit code pass
 The demo runs the same insecure template through the same gate twice, with and without the setting that makes PSRule
 read the Bicep file.
 
+Runs locally, no Azure access. Needs PowerShell 7, the `PSRule` and `PSRule.Rules.Azure` modules and, for the
+`Configured` pipeline, the Bicep CLI. A missing module stops the demo with exit 1, so a missing tool is never a pass.
+
 ## Five steps
 
 ### 1. Predict
@@ -30,9 +33,6 @@ exits 1. With `-Pipeline Configured` 21 rules run, 8 fail and both gates exit 1.
 
 An exit code of 0 is a declaration that nothing failed, not evidence that anything ran; the stronger check also reads
 how many rules were evaluated and fails on zero.
-
-Runs locally, no Azure access. Needs PowerShell 7, the `PSRule` and `PSRule.Rules.Azure` modules and, for the
-`Configured` pipeline, the Bicep CLI. A missing module stops the demo with exit 1, so a missing tool is never a pass.
 
 ## What each check settles
 
