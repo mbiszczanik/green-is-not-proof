@@ -4,8 +4,31 @@ Module A of the talk. A resource can exist, an existence check can pass, and Azu
 `Failed`. The demo gives the run's VM a script extension that always fails, then reads it twice: once asking only
 "is it there?", once asking "what state is it in?".
 
-The rule: an existence check is a declaration that something is there. The stronger check reads its provisioning
-state, and fails on anything but `Succeeded`.
+## Five steps
+
+### 1. Predict
+
+The extension is there: `Get-AzVMExtension` returns it. Does that show it works?
+
+### 2. Run
+
+`./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1 -ExpectFailed` prints
+`Existence check: PASS (extension gnp-failing-script found)`.
+
+### 3. Reveal
+
+The next line of the same run is `State check:     FAIL (ProvisioningState: Failed)`: Azure marked the extension
+`Failed`, and a validator that stops at the existence check would report success.
+
+### 4. Fix
+
+The state check is the fix: without `-ExpectFailed` the script exits 1 for any state but `Succeeded`, and a missing
+or blank state never passes.
+
+### 5. Rule
+
+An existence check is a declaration that something is there; the stronger check reads its provisioning state and
+fails on anything but `Succeeded`.
 
 ## What each check settles
 

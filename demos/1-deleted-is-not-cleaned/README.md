@@ -3,8 +3,32 @@
 A diagnostic setting is a separate resource attached to a storage account's blob service. Deleting the
 account reports success, but the setting may stay behind and attach to a new account with the same name.
 
-The rule: a successful delete is a declaration. The stronger check is listing the non-cascaded child resources, read
-back after the delete.
+## Five steps
+
+### 1. Predict
+
+The delete of the storage account reports success. Is everything that belonged to the account gone?
+
+### 2. Run
+
+`./Show-DiagnosticSettingLeftover.ps1 -Step Delete` prints `Deleted storage account <name>: OK`.
+
+### 3. Reveal
+
+After `-Step Recreate`, `-Step List` prints `Diagnostic settings on the NEW account: diag-to-log`: the setting of the
+deleted account is listed on the new account of the same name. The delete removed the account and not this child
+resource (see Why it is green).
+
+### 4. Fix
+
+This demo has no fixed variant: no step makes the delete remove the setting. The check that settles the question is
+the listing of diagnostic settings, read back after the delete (`-Step List`); `-Step Clean` then removes what the
+listing found.
+
+### 5. Rule
+
+A successful delete is a declaration; the stronger check is listing the non-cascaded child resources, read back after
+the delete.
 
 ## Why it is green
 

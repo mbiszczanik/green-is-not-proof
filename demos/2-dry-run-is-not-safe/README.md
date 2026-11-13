@@ -3,8 +3,33 @@
 A script with a `-DryRun` switch looks safe to try. But the switch only guards the calls its author
 remembered to put behind it. One call outside the guard changes real state on every "dry" run.
 
-The rule: a dry-run switch is a declaration. The stronger check is a dry run followed by a look at the write
-operations in the Activity Log. This demo shows only the fast pre-check, a syntax-tree test over the calls.
+## Five steps
+
+### 1. Predict
+
+The script has a `-DryRun` switch and its deployment call sits behind it. Is a dry run of this script free of changes?
+
+### 2. Run
+
+No command produces the green here: the green is the switch itself. `Deploy-Example.ps1` guards
+`New-AzResourceGroupDeployment` with `if ($DryRun)`, and this demo never executes the script.
+
+### 3. Reveal
+
+`Invoke-Pester ./demos/2-dry-run-is-not-safe -Output Detailed` shows one red test,
+`Deploy-Example.ps1 has no unguarded mutation`, naming line 18 and `Register-AzResourceProvider`: that call sits above
+the guard, so it runs on every dry run.
+
+### 4. Fix
+
+`Deploy-Example.Fixed.ps1` moves the registration into the non-dry branch, and the same suite is green for it. The
+suite is only the fast pre-check, a syntax-tree test over the calls; the stronger check of the rule is not shown on
+stage.
+
+### 5. Rule
+
+A dry-run switch is a declaration; the stronger check is a dry run followed by a look at the write operations in the
+Activity Log.
 
 ## What each check settles
 
