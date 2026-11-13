@@ -6,8 +6,31 @@ demanded property filled in. The real resource may not return that property.
 Off stage: the talk's core uses [demo 4, the gate demo](../4-gate-never-red/README.md) instead (see issue #3). This demo
 stays as reference material.
 
-The rule: a stubbed test is a declaration of what you believe the API returns. The stronger check is the same
-assertion against one live read of the real resource.
+## Five steps
+
+### 1. Predict
+
+The strict health check passes its test suite. Does a provisioned workspace pass the check?
+
+### 2. Run
+
+`Invoke-Pester ./demos/3-stub-proves-assumption -Output Detailed` is green.
+
+### 3. Reveal
+
+`./demos/3-stub-proves-assumption/Show-LiveProperty.ps1` prints `PrivateLinkScopedResources: (empty)`,
+`ProvisioningState: Succeeded` and `Strict health: False`. The test fed the check a hand-written stub with the property
+filled in, and the real workspace did not return it.
+
+### 4. Fix
+
+This demo has no fixed variant of the check. The check that settles the question is the live read,
+`Show-LiveProperty.ps1`: build the check from what it returns, and keep the stub as a copy of that response.
+
+### 5. Rule
+
+A stubbed test is a declaration of what you believe the API returns; the stronger check is the same assertion against
+one live read of the real resource.
 
 ## What each check settles
 
