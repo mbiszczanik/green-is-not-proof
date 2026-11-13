@@ -3,8 +3,34 @@
 A script with a `-DryRun` switch looks safe to try. But the switch only guards the calls its author
 remembered to put behind it. One call outside the guard changes real state on every "dry" run.
 
-The rule: a dry-run switch is a declaration. The stronger check is a dry run followed by a look at the write
-operations in the Activity Log. This demo shows only the fast pre-check, a syntax-tree test over the calls.
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+`Deploy-Example.ps1` has a `-DryRun` switch and guards its deployment call. Will a syntax-tree test over its calls find
+an Az call that sits outside the guard?
+
+### Run
+
+```powershell
+Invoke-Pester ./demos/2-dry-run-is-not-safe -Output Detailed
+```
+
+The test for `Deploy-Example.Fixed.ps1` is green. Without `-CI` the command exits 0 even with a red test.
+
+### Reveal
+
+The test for `Deploy-Example.ps1` is red and names line 18, `Register-AzResourceProvider`, which sits above the guard
+and changes real state on every "dry" run. Observed 2026-11-04.
+
+### Fix
+
+`Deploy-Example.Fixed.ps1` moves the registration into the non-dry branch, and its test is green.
+
+### Rule
+
+A dry-run switch is a declaration, so follow a dry run with a look at the write operations in the Activity Log (this
+demo shows only the fast syntax-tree pre-check).
 
 ## What each check settles
 

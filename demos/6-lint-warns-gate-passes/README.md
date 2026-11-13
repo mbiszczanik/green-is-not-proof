@@ -4,11 +4,37 @@ Module C, first demo (issue #10). The Bicep linter prints a warning and still ex
 process exit code passes a template the linter complained about. The demo runs the linter twice, through two gates, on
 the same template.
 
-The rule: an exit code is a declaration by the tool. The stronger check also reads what the tool printed, and fails on
-a diagnostic it cares about.
-
 Runs locally, no Azure access. Needs the Bicep CLI: `bicep`, or `az bicep` (the script uses the first one it finds,
 and stops with exit 1 if it finds neither, so a missing linter is never a pass).
+
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+The Bicep linter prints a warning for `Sample.bicep`. Will a gate that reads only the linter's exit code pass or fail the
+template?
+
+### Run
+
+```powershell
+./demos/6-lint-warns-gate-passes/Invoke-Gate.ps1 -Gate Bare -Template Sample
+```
+
+Green: `Process exit code: 0` and `Bare gate: PASS`.
+
+### Reveal
+
+The output above the verdict holds the warning (`no-unused-params`) and `The gate would PASS although the output shows
+a diagnostic.` A Warning does not change the linter's exit code.
+
+### Fix
+
+The fixed gate reads the output as well: `Invoke-Gate.ps1 -Gate Fixed -Template Sample` prints `Fixed gate: FAIL` and exits
+1, and on `-Template Clean` both gates pass.
+
+### Rule
+
+An exit code is a declaration by the tool, so also read what the tool printed and fail on a diagnostic you care about.
 
 ## What each check settles
 

@@ -3,8 +3,34 @@
 A validator prints `[FAIL]`, ends with "Validation complete" and the pipeline stays green. The talk's core uses this
 demo (act 2): it runs locally with PowerShell 7, makes no Azure call and costs nothing.
 
-The rule: a green gate is a declaration until you have seen it go red. The stronger check is the process exit code,
-read from the process itself, and a run of the gate against an input that must fail.
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+A validator prints `[FAIL]` twice and ends with "Validation complete". Will the process that ran it exit non-zero?
+
+### Run
+
+```powershell
+./demos/4-gate-never-red/Invoke-Gate.ps1 -Script Silent -State Empty
+```
+
+Green: `Process exit code: 0`.
+
+### Reveal
+
+The output shows two failures and the gate passes. `Counted` calls `exit 1` and still exits 0, because PowerShell drops
+the code under `pwsh -File` when the script starts with `#Requires -Modules`; see Why it is green.
+
+### Fix
+
+`Test-Lab.Fixed.ps1` calls `$Host.SetShouldExit($code)` before `exit`: `Invoke-Gate.ps1 -Script Fixed -State Empty` exits
+1 and `-State Ok` exits 0.
+
+### Rule
+
+A green gate is a declaration until you have seen it go red, so read the process exit code and run the gate against an
+input that must fail.
 
 ## Why it is green
 

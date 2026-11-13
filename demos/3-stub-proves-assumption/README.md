@@ -6,8 +6,35 @@ demanded property filled in. The real resource may not return that property.
 Off stage: the talk's core uses [demo 4, the gate demo](../4-gate-never-red/README.md) instead (see issue #3). This demo
 stays as reference material.
 
-The rule: a stubbed test is a declaration of what you believe the API returns. The stronger check is the same
-assertion against one live read of the real resource.
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+The stubbed suite for the strict health check is green. Will the same check call a real, provisioned workspace healthy?
+
+### Run
+
+```powershell
+Invoke-Pester ./demos/3-stub-proves-assumption -Output Detailed
+```
+
+Green, offline: the logic is right for the stub you wrote.
+
+### Reveal
+
+`Show-LiveProperty.ps1` reads the real workspace once and prints `PrivateLinkScopedResources: (empty)`, so
+`Strict health: False` for a workspace whose `ProvisioningState` is `Succeeded`. This step needs Azure; the stub half
+runs offline.
+
+### Fix
+
+No fixed variant. The check that settles the question: `Show-LiveProperty.ps1`, one live read of the real resource, from
+which the check and the stub are then rebuilt.
+
+### Rule
+
+A stubbed test is a declaration of what you believe the API returns, so run the same assertion against one live read of
+the real resource.
 
 ## What each check settles
 

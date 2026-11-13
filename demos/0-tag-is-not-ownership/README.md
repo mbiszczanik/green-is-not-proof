@@ -4,7 +4,35 @@ A tag-based audit reports green while a VM the declared deployment never created
 ownership audit lists the resources in the group that are absent from the deployment record, the list Azure wrote of
 what `infra/declared.bicep` deployed.
 
-The rule: a tag is a declaration. The stronger check is the group's full inventory compared with the deployment record.
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+The group holds a VM that the declared deployment never created, and it carries the run's tags. Will a tag audit of the
+group report green or red?
+
+### Run
+
+```powershell
+./demos/0-tag-is-not-ownership/Invoke-TagAudit.ps1
+```
+
+Green: exit code 0, all 7 resources carry the project tags, the VM among them.
+
+### Reveal
+
+The tags were copied onto the VM, so the audit finds it tagged. A tag says nothing about who created a resource. The
+ownership audit (step 2 of the On-stage sequence) exits 1 and lists the VM, its NIC, its OS disk and its shutdown
+schedule, none of which the deployment record lists.
+
+### Fix
+
+No fixed variant. The check that settles the question: `Invoke-OwnershipAudit.ps1`, the group's full inventory compared
+with the deployment record.
+
+### Rule
+
+A tag is a declaration, so compare the group's full inventory with the deployment record instead of trusting tags.
 
 ## What each check settles
 

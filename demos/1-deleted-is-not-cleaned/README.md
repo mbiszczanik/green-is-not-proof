@@ -3,8 +3,34 @@
 A diagnostic setting is a separate resource attached to a storage account's blob service. Deleting the
 account reports success, but the setting may stay behind and attach to a new account with the same name.
 
-The rule: a successful delete is a declaration. The stronger check is listing the non-cascaded child resources, read
-back after the delete.
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+`Remove-AzStorageAccount` returns success and the account is gone. If a new account with the same name is created, will
+it carry any diagnostic setting?
+
+### Run
+
+```powershell
+./demos/1-deleted-is-not-cleaned/Show-DiagnosticSettingLeftover.ps1 -Step Delete
+```
+
+Green: `Deleted storage account <name>: OK`.
+
+### Reveal
+
+After `-Step Recreate`, `-Step List` prints `Diagnostic settings on the NEW account: diag-to-log`. The delete removed
+only the account; see Why it is green.
+
+### Fix
+
+No fixed variant. The check that settles the question: `-Step List`, the child diagnostic settings listed after the
+delete (`-Step Verify` is the preparation check); `-Step Clean` removes the leftover.
+
+### Rule
+
+A successful delete is a declaration, so list the non-cascaded child resources and read them back after the delete.
 
 ## Why it is green
 

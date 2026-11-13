@@ -5,11 +5,39 @@ evaluates nothing and reports success. A gate that reads only the exit code pass
 The demo runs the same insecure template through the same gate twice, with and without the setting that makes PSRule
 read the Bicep file.
 
-The rule: an exit code of 0 is a declaration that nothing failed, not evidence that anything ran. The stronger check
-also reads how many rules were evaluated, and fails on zero.
-
 Runs locally, no Azure access. Needs PowerShell 7, the `PSRule` and `PSRule.Rules.Azure` modules and, for the
 `Configured` pipeline, the Bicep CLI. A missing module stops the demo with exit 1, so a missing tool is never a pass.
+
+## Predict, run, reveal, fix, rule
+
+### Predict
+
+`Storage.bicep` has TLS 1.0 and public blob access. Will a gate that reads only the exit code of `Assert-PSRule` pass or
+fail it?
+
+### Run
+
+```powershell
+./demos/7-unprocessed-object-passes/Invoke-Gate.ps1 -Gate Bare -Pipeline Misconfigured
+```
+
+Green: `Process exit code: 0` and `Bare gate: PASS`.
+
+### Reveal
+
+PSRule printed a warning and `Rules processed: 0, failed: 0, errored: 0`: no rule targeted the file, so nothing was
+evaluated and the exit code still says success.
+
+### Fix
+
+The fixed gate also reads the summary and fails on zero rules: `Invoke-Gate.ps1 -Gate Fixed -Pipeline Misconfigured`
+exits 1, and with `-Pipeline Configured` PSRule evaluates 21 rules, 8 fail and the template is rejected for the right
+reason.
+
+### Rule
+
+An exit code of 0 is a declaration that nothing failed, not evidence that anything ran, so also read how many rules were
+evaluated and fail on zero.
 
 ## What each check settles
 
