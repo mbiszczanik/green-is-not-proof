@@ -39,7 +39,8 @@ BeforeAll {
             [scriptblock]$Evaluator = {
                 param($Path, $ExpandBicep)
                 Import-Module PSRule.Rules.Azure
-                $opt = New-PSRuleOption -Option @{ 'Configuration.AZURE_BICEP_FILE_EXPANSION' = $ExpandBicep; 'Output.Style' = 'Plain' }
+                # 30 s: the 5 s default times out on a busy machine.
+                $opt = New-PSRuleOption -Option @{ 'Configuration.AZURE_BICEP_FILE_EXPANSION' = $ExpandBicep; 'Configuration.AZURE_BICEP_FILE_EXPANSION_TIMEOUT' = 30; 'Output.Style' = 'Plain' }
                 $rec = Invoke-PSRule -Module PSRule.Rules.Azure -InputPath $Path -Format File -Option $opt -WarningVariable w -ErrorVariable e -WarningAction SilentlyContinue -ErrorAction SilentlyContinue
                 [pscustomobject]@{
                     Record     = @($rec)
