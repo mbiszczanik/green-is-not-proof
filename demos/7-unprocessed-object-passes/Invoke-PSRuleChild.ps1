@@ -18,7 +18,8 @@ if (-not (Get-Module -ListAvailable PSRule.Rules.Azure)) {
     exit 1
 }
 Import-Module PSRule.Rules.Azure
-$option = New-PSRuleOption -Option @{ 'Configuration.AZURE_BICEP_FILE_EXPANSION' = ($ExpandBicep -eq 'On'); 'Output.Style' = 'Plain' }
+# 30 s: the 5 s default times out on a busy laptop and PSRule then evaluates no rule.
+$option = New-PSRuleOption -Option @{ 'Configuration.AZURE_BICEP_FILE_EXPANSION' = ($ExpandBicep -eq 'On'); 'Configuration.AZURE_BICEP_FILE_EXPANSION_TIMEOUT' = 30; 'Output.Style' = 'Plain' }
 try {
     Assert-PSRule -Module PSRule.Rules.Azure -InputPath $Path -Format File -Option $option -ErrorAction Stop
 }
