@@ -9,6 +9,38 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-16 (D-2), test subscription, `swedencentral`, run `202611161951`, code at `0292a4b`, final live run before delivery (#3)
+
+Run by the author, 19:51 to 20:00 local time, from the delivery candidate commit. Azure scripts ran with an Az context built
+from the Azure CLI session (`Invoke-WithAzContext.ps1` of the private recorder repository); PowerShell 7.6.10,
+Az.Accounts 5.5.3, Az.Compute 11.9.0. This machine is the author's working machine, not the presentation laptop, so the
+presentation laptop run is still owed. Each step was a child `pwsh -NoProfile -File`; the exit code is the process's own.
+Before: no `rg-gnp*` group, no resource tagged `project=green-is-not-proof`.
+
+| Step | Exit | Observed |
+| --- | --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | 0 after 59 s | cost guard 0.293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | 0 after 63 s | `vm-traffic` outside the deployment |
+| Demo 0, `Invoke-TagAudit.ps1` | 0 | `All 7 resources carry project tags: OK` |
+| Demo 0, `Invoke-OwnershipAudit.ps1` | 1 (by design) | `Not in the deployment record:` |
+| Demo 1, `Show`, `Delete`, `Recreate` | 0 each | account deleted and recreated |
+| Demo 1, `Verify` after `Recreate` | 0 | `Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account` |
+| Demo 1, `List`, `Clean` | 0 each | `Diagnostic settings on the NEW account: diag-to-log`; `Removed 1 diagnostic setting(s)` |
+| Demo 1, `Verify` after `Clean` | 1 (by design) | `Demonstration did not reproduce: ... found: none` |
+| Demo 3, `Show-LiveProperty.ps1` | 0 | `PrivateLinkScopedResources: (empty)`, `ProvisioningState: Succeeded`, `Strict health: False` |
+| Demo 5, `Show-ExistenceVsState.ps1` before the extension exists | 1 | `Existence check: FAIL (extension gnp-failing-script not found). Run New-FailedExtension.ps1 first.` |
+| Demo 5, `New-FailedExtension.ps1` | 0 after 39 s | `VMExtensionProvisioningError`; extension reached `ProvisioningState Failed` |
+| Demo 5, `Show-ExistenceVsState.ps1` (no flag) | 1 | `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)` |
+| Demo 0, `Invoke-OwnershipAudit.ps1` after the extension | 1 (by design) | `Not in the deployment record:` lists `vm-traffic/gnp-failing-script` |
+| `Stop-DemoRun.ps1` | 0 after 206 s | no diagnostic settings remain on 12 resources and sub-services; resource group gone; nothing tagged `runId=202611161951` remains |
+| After teardown | | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+Not run in this pass: demo 5 with `-ExpectFailed` (the first attempt failed in the run harness, which passed the switch as
+a string; the demo script was not reached), demos 2, 4, 6 and 7 (local, not part of this Azure sequence), the Portal and the
+presentation laptop. The `-ExpectFailed` path was observed live on 2026-11-11, and the demo 5 scripts did not change between
+`113f751` and `0292a4b`. Every script printed `Not compared` for the tool versions, because no observed versions are
+recorded for these tools.
+
 ### 2026-11-13, test subscription, `swedencentral`, run `202611132017`, code at `113f751`, demo 5 backup recording remade (#41)
 
 Run by the author. Azure scripts ran with an Az context built from the
