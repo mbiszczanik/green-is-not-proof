@@ -9,6 +9,31 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-14, test subscription, `swedencentral`, run `202611141843`, code at `0292a4b`, full sequence repeated
+
+Run by the author, each command as `pwsh -NoProfile -File <script>`, exit code from the process.
+PowerShell 7.6.10, Az.Accounts 5.5.3, Az.Compute 11.9.0, Az.Monitor 8.0.0, Az.Storage 9.7.2, Az.Resources 10.2.0.
+The offline commands (demos 4 and 7) ran earlier the same day on the same commit, twice in a row, with the machine
+busy (CPU load 100 percent at the start); PSRule 2.9.0, PSRule.Rules.Azure 1.47.0, Bicep CLI 0.44.1.
+
+| Step | Observed |
+| --- | --- |
+| `Start-DemoRun.ps1` | exit 0 in 84 s; cost guard 0.293758 EUR for 2 hours |
+| `New-RogueResource.ps1` | exit 0 in 66 s |
+| Demo 0, `Invoke-OwnershipAudit.ps1` | exit 1 in 7 s; "Not in the deployment record:" listed the VM, its OS disk, its NIC and the shutdown schedule (4 rows) |
+| Demo 5, `New-FailedExtension.ps1` | exit 0 in 34 s |
+| Demo 1, `Show`, `Delete`, `Recreate`, `Verify`, `List`, `Clean` | each exit 0 in 11, 8, 23, 4, 3, 5 s |
+| Demo 5, `Show-ExistenceVsState.ps1 -ExpectFailed`; without the flag | exit 0 in 3 s; exit 1 in 2 s; both print `Existence check: PASS` and `State check: FAIL (ProvisioningState: Failed)` |
+| `Stop-DemoRun.ps1` | exit 0 in 202 s; afterwards 0 `rg-gnp*` groups and 0 resources tagged `project=green-is-not-proof` |
+| Demo 4, `Invoke-Gate.ps1` `Silent`/`Empty`, `Counted`/`Empty`, `Fixed`/`Empty`, `Fixed`/`Ok` | exit 0, 0, 1, 0, in about 2 to 5 s each (two rounds) |
+| Demo 7, `Invoke-Gate.ps1` `Fixed`/`Configured` | exit 1; `Rules processed: 21, failed: 8`; 29.3 s on the first run (cold), 10.1 s on the second |
+| Demo 7, `Bare`/`Misconfigured`; `Fixed`/`Misconfigured` | exit 0 (`Rules evaluated: 0`); exit 1; 4 to 6 s |
+
+What differed from the expected output: the durations. `Start-DemoRun.ps1` and `New-RogueResource.ps1` took about twice
+as long as on 2026-11-11 (42 s and 20 s), and the first demo 7 run took 29.3 s against 5 s. Start them well before the
+talk and run the demo 7 gate once as a warm-up. The exit codes match 2026-11-11. The Bicep expansion timeout of 30 s
+(issue 84) is in this commit.
+
 ### 2026-11-13, test subscription, `swedencentral`, run `202611132017`, code at `113f751`, demo 5 backup recording remade (#41)
 
 Run by the author. Azure scripts ran with an Az context built from the
