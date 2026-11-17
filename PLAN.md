@@ -73,13 +73,13 @@ Another session works on them in the private repository. Dependency only: the co
 
 Evidence: a dated block in `docs/live-run-log.md` from the author's run.
 
-- [ ] The author runs the sequence once on the screen used on stage.
-- [ ] Anything that fails becomes an issue with its class.
+- [x] The author ran the sequence on the presentation laptop on 2026-11-17: offline pack, demos 6 and 7 (#3 comment), and the Azure start in three attempts (#88).
+- [x] Anything that failed became an issue: #88 (the cost guard stops on a 429 from the retail price API, no retry; open, found 2026-11-17).
 
 ## Block 5, D-2 to D: recordings and the last check
 
-- [ ] The author records demos 0, 1, 4, 5 and 6 and checks each frame for subscription id, tenant, account name and local path (#3).
-- [ ] One final live run shortly before delivery (#3).
+- [x] Backup recordings of demos 0, 1, 2, 4, 5, 6 and 7 exist (live-run log); demo 5 and demo 7 were remade on 2026-11-13; the author's frame review of demos 6 and 7 is done (#10, 2026-11-17). The review of the other recordings is recorded on the unpushed local branch `docs/review-notes`, not mine.
+- [x] Final live run before delivery: 2026-11-16 at `0292a4b` (PR #87, `Refs #3`); repeated on the laptop on 2026-11-17 (#88, #3).
 - [x] The merged worktrees and branches of PRs #23 to #25 are removed (2026-11-05). `log-full-run` removed after PR #22 merged. Still to remove at close-out: `burndown` with this file.
 
 ## Block 6, D to D+1: close-out
@@ -95,6 +95,10 @@ Evidence: dated run, command, exit code; an offline test in CI.
 - [x] Candidate 2 (PSRule): run locally 2026-11-05; `Assert-PSRule` exits 0 with 0 rules evaluated when nothing targets the input, a gate would miss it, so demo 7 was built (PR #26 merged, `c19ae7d`; status comment on #10). Whether demo 7 is part of module C is the author's decision.
 - [ ] Backup recording of demo 6 and of any candidate 2 demo, after an identifier check (#10).
 - [x] The four follow-ups of #4: done in PR #17 and #4 closed (2026-11-04).
+
+## Status 2026-11-17 (read from `origin/main` at `b8e7213`, the issue list and the PR list that day)
+
+No pull request is open. Open issues: #1 (specification), #3 (core and module A demos), #10 (module C demo), #32 (CI passes while tests are skipped; the stage segment is out of the first delivery, the issue stays open for it), #37 and #38 (priority 2, for the lecture), #88 (cost guard retry on a 429, found 2026-11-17, not fixed). Other sessions did most of the work after 2026-11-05 (gallery of false-green demos, offline pack, recordings, #84 and #85 for demo 7); this plan is not their record.
 
 ## Needs the user
 
