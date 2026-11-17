@@ -9,6 +9,29 @@ this file; name them by role.
 
 ## Observed
 
+### 2026-11-17 (D-1), test subscription, `swedencentral`, run `202611171402`, code at `0292a4b`, stage-order rehearsal of the environment on the presentation laptop (#3, #88)
+
+Run by the author, 14:02 to 14:10 local time, in the order of the talk: environment build, off-stage warm-up of demo 5, then demo 4, demo 5 and demo 1 as on stage, then the after-the-talk cleanup and teardown. Azure scripts ran under the saved Az PowerShell sign-in of the laptop (a read of the resource groups with it succeeded before the run), without the token helper of earlier runs. PowerShell 7.6.10, Az.Accounts 5.5.3, Az.Compute 11.9.0, Az.Storage 9.7.2, Az.Monitor 8.0.0. Each step was a child `pwsh -NoProfile -File`; the exit code is the process's own. Before: no `rg-gnp*` group, no resource tagged `project=green-is-not-proof`.
+
+| Step | Exit | Observed |
+| --- | --- | --- |
+| `Start-DemoRun.ps1 -Location swedencentral` | 0 after 82.5 s | cost guard 0.293758 EUR for 2 hours; two earlier starts stopped on a 429 from the retail price API (see below) |
+| `New-RogueResource.ps1` | 0 after 60.9 s | `vm-traffic` outside the deployment |
+| Demo 0, `Invoke-TagAudit.ps1`, `Invoke-OwnershipAudit.ps1` | 0, 1 (by design) | `All 7 resources carry project tags: OK`; `Not in the deployment record:` |
+| Demo 5, `New-FailedExtension.ps1` (off stage) | 0 after 33.8 s | extension in `Failed` |
+| Demo 4, `Invoke-Gate.ps1`: `Silent`/`Empty`, `Counted`/`Empty`, `Fixed`/`Empty`, `Fixed`/`Ok` | 0, 0, 1, 0 | `Process exit code` 0, 0, 1, 0; 1 to 2 s each |
+| Demo 5, `Show-ExistenceVsState.ps1 -ExpectFailed` | 0 after 2.4 s | `Existence check: PASS`, `State check:     FAIL (ProvisioningState: Failed)` |
+| Demo 5, `Show-ExistenceVsState.ps1` (no flag) | 1 after 2.2 s | the same two lines |
+| Demo 1, `Show`, `Delete`, `Recreate`, `List` | 0 each | `Recreate` 22.8 s; `List` printed `Diagnostic settings on the NEW account: diag-to-log` |
+| Demo 1, `Verify` | 0 | `Demonstration reproduced: diagnostic setting diag-to-log is listed on the NEW account` |
+| Demo 1, `Clean` | 0 | `Removed 1 diagnostic setting(s)` |
+| `Stop-DemoRun.ps1` | 0 after 200.9 s | no diagnostic settings remain on 12 resources and sub-services; resource group gone; nothing tagged `runId=202611171402` remains |
+| After teardown | | `rg-gnp*` groups: 0; resources tagged `project=green-is-not-proof`: 0 |
+
+Two starts failed before this run: exit 1 after 4.2 s and exit 1 after 15.4 s, each with `Retail price request failed ... 429 (Too Many Requests)` from the cost guard (the `Virtual Machines` item, then the `Log Analytics` item). Both left nothing behind (no `rg-gnp*` group, no `out/run.json`); three plain requests to the same API between the attempts returned HTTP 200. The cost guard has no retry (#88). Workaround: run `Start-DemoRun.ps1` again after about 90 seconds.
+
+This pass closes the gap of 2026-11-16: demo 5 with `-ExpectFailed` ran (exit 0), and without the flag exit 1. Not run in this pass: demos 2, 6 and 7 (local, not part of the stage order; the offline pack of the same day passed), the Portal.
+
 ### 2026-11-16 (D-2), test subscription, `swedencentral`, run `202611161951`, code at `0292a4b`, final live run before delivery (#3)
 
 Run by the author, 19:51 to 20:00 local time, from the delivery candidate commit. Azure scripts ran with an Az context built
