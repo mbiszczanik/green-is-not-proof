@@ -46,8 +46,9 @@ That run did not repeat three checks, so their newest observation is older: the 
 (2026-11-03, under a write-capable account), the Reader-only refusal (2026-11-04, 403, no log entry) and the cheat
 sheet command for rule 1 (2026-11-04).
 
-Demos 0, 1, 2, 4, 5, 6 and 7 have a backup recording (demo 5 remade on 2026-11-13, after the exit-code fix). The author's review of the demo 2 recording is owed: no date or
-result is recorded (see [docs/talk-evidence.md](docs/talk-evidence.md), "Not yet observed").
+Demos 0, 1, 2, 4, 5, 6 and 7 have a backup recording (demo 5 remade on 2026-11-13, after the exit-code fix). The author reviewed the demo 2 recording on 2026-11-08 and had no remarks.
+The remade demo 5 and demo 7 recordings are not yet reviewed (see [docs/talk-evidence.md](docs/talk-evidence.md),
+"Not yet observed").
 
 Before each delivery, run the whole sequence once and add a dated block to
 [docs/live-run-log.md](docs/live-run-log.md): what was observed, when, with which command and exit code. Until a

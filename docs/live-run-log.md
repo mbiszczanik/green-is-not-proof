@@ -108,7 +108,8 @@ template). The author's own review of its frames is owed.
 
 Demo 6 was recorded the same day, local, at the same code: `Invoke-Recording.ps1` on the demo 6 tape exit 0, text copy scanned with 8 patterns, no hits;
 the output shows `Bare` on `Sample` as `PASS` with one Bicep warning and exit code 0, `Fixed` on `Sample` as `FAIL`, and `Bare` and
-`Fixed` on `Clean` as `PASS`. No frame of the demo 6 recording was reviewed; the author's review is owed.
+`Fixed` on `Clean` as `PASS`. The author reviewed the terminal recordings of demos 0, 4, 6 and 7 of this first batch
+and had no remarks; the review date is not recorded.
 
 ### 2026-11-11, test subscription, rule 3 under a Reader-only identity, run in a fresh run, code at `59e2b7f`
 
