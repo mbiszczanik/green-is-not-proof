@@ -110,7 +110,7 @@ extension is healthy.
 - **Observed 2026-11-11** (run `202611111504`, code at `c9a3e9f`): without `-ExpectFailed` exit 1, with it exit 0, both
   with the three lines above; before the extension existed both modes exit 1 with "Run New-FailedExtension.ps1 first".
   The Az error for a missing extension is `ResourceNotFound` (404) naming the extension path. See
-  [docs/live-run-log.md](../../docs/live-run-log.md). Owed: a new backup recording of the on-stage run (#41).
+  [docs/live-run-log.md](../../docs/live-run-log.md). The backup recording was remade on 2026-11-13 (#41, closed).
 - The two observed runs below predate the exit-code contract above: they ran the script as it was then (exit 0 for state
   `Failed`).
 - **Observed 2026-11-08** (run `202611081831`, code at `0571f52`, a subscription with a policy that installs the Guest

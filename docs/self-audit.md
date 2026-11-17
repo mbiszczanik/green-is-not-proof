@@ -118,7 +118,7 @@ the files.
 
 Open:
 
-- The author's review of the demo 2 recording is owed. PR #31 asked not to merge before that review; it merged on
-  2026-11-08, and no file in this repository records a review date or a result.
+- The author's review of the remade demo 5 and demo 7 recordings is owed. The demo 2 recording was reviewed on
+  2026-11-08 with no remarks; PR #31 (the backup-recording note for demo 2) merged after that review.
 - The identifier scan of the recordings, due at D-2 (see [talk-evidence.md](talk-evidence.md)): no result is recorded.
 - A remake of the demo 5 recording is tracked in #41; the recordings as a whole are tracked in #3.

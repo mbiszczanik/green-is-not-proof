@@ -37,8 +37,8 @@ a block does not record a detail, the row names the older block that does and sa
 
 These must not be presented as observed:
 
-- the author's review of the demo 2 backup recording: owed. PR #31 asked not to merge before the author had reviewed
-  the video; it merged on 2026-11-08, and no file in this repository records a review date or a result;
+- the author's review of the remade demo 5 and demo 7 backup recordings: owed (the demo 2 recording was reviewed on
+  2026-11-08, no remarks);
 - the identifier scan of the backup recordings, due at D-2: demos 0, 1, 2, 4, 5, 6 and 7 have a recording (made
   2026-11-07 and 2026-11-08, see the log), and no scan result is recorded;
 - the full sequence on the code of the day of delivery (last full runs: 2026-11-11, runs `202611111504` at `c9a3e9f`
