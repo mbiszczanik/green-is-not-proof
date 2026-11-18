@@ -3,7 +3,7 @@
 A green check is what a system says about itself. A better check reads back from a source independent of the thing
 being checked. Even then it settles one specific question, in one configuration, at one moment.
 
-Before trusting any green, ask: **What would this show if it did not work?**
+Before trusting any green, ask: **Would this check catch an error?**
 
 Each rule below says what the stronger check confirms and what it does not settle. Commands marked *sketch* have
 not been run against Azure in this form yet; see [live-run-log.md](live-run-log.md).
