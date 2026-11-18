@@ -20,7 +20,7 @@ Author: Marcin Biszczanik, Cloud and Platform Consultant. [mbiszczanik.dev](http
 
 ## The question and the four rules
 
-Before trusting any green, ask: **What would this show if it did not work?** A better check reads back from a
+Before trusting any green, ask: **Would this check catch an error?** A better check reads back from a
 source independent of the thing being checked, and settles one specific question in one configuration at one moment.
 
 1. A tag is a declaration. Stronger check: the group's full inventory compared with the deployment record. It finds
