@@ -38,14 +38,36 @@ if ($Lane -eq 'Full') {
     }
     $steps['Bicep lint'] = {
         # Linter warnings exit 0, so the gate reads the diagnostics, not the exit code.
-        $out = az bicep lint --file infra/declared.bicep 2>&1 | Out-String
+        # A Bicep CLI on PATH (CI, worker image) must be the pinned version; `az bicep` downloads a compiler at run time.
+        $pin = '0.38.5'
+        $bicep = Get-Command bicep -CommandType Application -ErrorAction SilentlyContinue
+        if ($bicep) {
+            $ver = (& $bicep.Source --version 2>&1 | Out-String).Trim()
+            if ($ver -notmatch "version $([regex]::Escape($pin))\b") {
+                Write-Host "Bicep CLI on PATH is '$ver', not $pin"; $global:LASTEXITCODE = 1; return
+            }
+            $out = & $bicep.Source lint infra/declared.bicep 2>&1 | Out-String
+        } else {
+            $out = az bicep lint --file infra/declared.bicep 2>&1 | Out-String
+        }
         $code = $LASTEXITCODE
         Write-Host $out
         if ($code -ne 0 -or $out -cmatch ': (Warning|Error) ') { $global:LASTEXITCODE = 1 }
     }
     $steps['Markdown lint'] = {
+        # markdownlint-cli2 on PATH (worker image) must be the pinned version; otherwise npx fetches that version.
         # Package and version joined at run time: "name@version" reads as an e-mail address to the public-content check.
-        npx --yes ('markdownlint-cli2' + [char]64 + '0.18.1') '**/*.md'
+        $pin = '0.24.0'
+        $mdl = Get-Command markdownlint-cli2 -CommandType Application -ErrorAction SilentlyContinue
+        if ($mdl) {
+            $banner = (& $mdl.Source --help 2>&1 | Select-Object -First 1 | Out-String).Trim()
+            if ($banner -notmatch "^markdownlint-cli2 v$([regex]::Escape($pin)) ") {
+                Write-Host "markdownlint-cli2 on PATH is '$banner', not $pin"; $global:LASTEXITCODE = 1; return
+            }
+            & $mdl.Source '**/*.md'
+        } else {
+            npx --yes ('markdownlint-cli2' + [char]64 + $pin) '**/*.md'
+        }
     }
 } else {
     $steps['PSScriptAnalyzer'] = {
