@@ -12,7 +12,7 @@ The extension is there: `Get-AzVMExtension` returns it. Does that show it works?
 
 ### 2. Run
 
-`./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1 -ExpectFailed` prints
+`./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1` prints
 `Existence check: PASS (extension gnp-failing-script found)`.
 
 ### 3. Reveal
@@ -22,8 +22,8 @@ The next line of the same run is `State check:     FAIL (ProvisioningState: Fail
 
 ### 4. Fix
 
-The state check is the fix: without `-ExpectFailed` the script exits 1 for any state but `Succeeded`, and a missing
-or blank state never passes.
+The state check is the fix: the script exits 1 for any state but `Succeeded`, and a missing or blank state never
+passes.
 
 ### 5. Rule
 
@@ -63,10 +63,10 @@ away with the resource group.
 ## On stage
 
 ```powershell
-./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1 -ExpectFailed
+./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1
 ```
 
-Expected output (exit code 0, because `-ExpectFailed` says a `Failed` state is the result this demo expects):
+Expected output (exit code 1, because the state check fails for an extension in state `Failed`):
 
 ```text
 Existence check: PASS (extension gnp-failing-script found)
@@ -76,6 +76,10 @@ One read of this extension, in this configuration, at this moment.
 
 Then state what it settles: for this extension, now, "exists" and "works" disagree, and a validator that stops at the
 first check would report success. It does not show how common this is.
+
+The stage run has no flag, so the exit code the audience sees is the state check's own: 1. `-ExpectFailed` is for a
+rehearsal or a recording script that must stop when the failure was not reproduced; with it the same output ends
+with exit code 0 (see the table below).
 
 ## Exit codes
 
