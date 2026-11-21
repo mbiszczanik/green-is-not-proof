@@ -40,7 +40,7 @@ if ($Lane -eq 'Full') {
         # Linter warnings exit 0, so the gate reads the diagnostics, not the exit code.
         # A Bicep CLI on PATH (CI, worker image) must be the pinned version; `az bicep` downloads a compiler at run time.
         $pin = '0.38.5'
-        $bicep = Get-Command bicep -CommandType Application -ErrorAction SilentlyContinue
+        $bicep = Get-Command bicep -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($bicep) {
             $ver = (& $bicep.Source --version 2>&1 | Out-String).Trim()
             if ($ver -notmatch "version $([regex]::Escape($pin))\b") {
@@ -58,7 +58,7 @@ if ($Lane -eq 'Full') {
         # markdownlint-cli2 on PATH (worker image) must be the pinned version; otherwise npx fetches that version.
         # Package and version joined at run time: "name@version" reads as an e-mail address to the public-content check.
         $pin = '0.24.0'
-        $mdl = Get-Command markdownlint-cli2 -CommandType Application -ErrorAction SilentlyContinue
+        $mdl = Get-Command markdownlint-cli2 -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($mdl) {
             $banner = (& $mdl.Source --help 2>&1 | Select-Object -First 1 | Out-String).Trim()
             if ($banner -notmatch "^markdownlint-cli2 v$([regex]::Escape($pin)) ") {
