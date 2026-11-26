@@ -103,3 +103,44 @@ Describe 'Get-RetailPriceItem' {
         { Get-RetailPriceItem -Item $script:item -Region 'r' -MaxPages 3 } | Should -Throw '*exceeded 3 pages*'
     }
 }
+
+Describe 'Invoke-RetailPricePage retry' {
+    BeforeAll {
+        function Get-HttpFailure([int]$Code) {
+            [System.Net.Http.HttpRequestException]::new("status $Code", $null, [System.Net.HttpStatusCode]$Code)
+        }
+    }
+    BeforeEach {
+        $script:calls = 0
+        $script:waits = [System.Collections.Generic.List[double]]::new()
+        Mock Start-Sleep { $script:waits.Add($Seconds) }
+    }
+    It 'succeeds after a 429' {
+        Mock Invoke-RestMethod { if (++$script:calls -le 2) { throw (Get-HttpFailure 429) } 'ok' }
+        Invoke-RetailPricePage -Uri 'u' -ItemName 'vm' | Should -Be 'ok'
+        $script:calls | Should -Be 3
+    }
+    It 'succeeds after a 5xx' {
+        Mock Invoke-RestMethod { if (++$script:calls -le 1) { throw (Get-HttpFailure 503) } 'ok' }
+        Invoke-RetailPricePage -Uri 'u' -ItemName 'vm' | Should -Be 'ok'
+        $script:calls | Should -Be 2
+    }
+    It 'fails after 5 retries naming item and status, with growing waits' {
+        Mock Invoke-RestMethod { $script:calls++; throw (Get-HttpFailure 429) }
+        { Invoke-RetailPricePage -Uri 'u' -ItemName 'Log Analytics' } | Should -Throw "*'Log Analytics'*429*"
+        $script:calls | Should -Be 6
+        $script:waits.Count | Should -Be 5
+        for ($i = 1; $i -lt 5; $i++) { $script:waits[$i] | Should -BeGreaterThan $script:waits[$i - 1] }
+    }
+    It 'does not retry another status' {
+        Mock Invoke-RestMethod { $script:calls++; throw (Get-HttpFailure 404) }
+        { Invoke-RetailPricePage -Uri 'u' -ItemName 'vm' } | Should -Throw '*404*'
+        $script:calls | Should -Be 1
+        $script:waits.Count | Should -Be 0
+    }
+    It 'does not retry an error without a status' {
+        Mock Invoke-RestMethod { $script:calls++; throw 'network down' }
+        { Invoke-RetailPricePage -Uri 'u' -ItemName 'vm' } | Should -Throw '*network down*'
+        $script:calls | Should -Be 1
+    }
+}

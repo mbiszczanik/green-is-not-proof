@@ -1,7 +1,27 @@
+function Get-HttpStatusCode {
+    param([Parameter(Mandatory)]$ErrorRecord)
+    $ex = $ErrorRecord.Exception
+    $status = $ex.StatusCode
+    if ($null -eq $status -and $ex.Response) { $status = $ex.Response.StatusCode }
+    if ($null -eq $status) { return $null }
+    [int]$status
+}
+
 function Invoke-RetailPricePage {
-    param([Parameter(Mandatory)][string]$Uri)
-    try { Invoke-RestMethod -Uri $Uri -Method Get -ErrorAction Stop }
-    catch { throw "Retail price request failed for ${Uri}: $($_.Exception.Message)" }
+    param([Parameter(Mandatory)][string]$Uri, [string]$ItemName = '', [int]$MaxRetries = 5, [int]$BaseDelaySeconds = 2)
+    for ($attempt = 0; ; $attempt++) {
+        try { return Invoke-RestMethod -Uri $Uri -Method Get -ErrorAction Stop }
+        catch {
+            $code = Get-HttpStatusCode -ErrorRecord $_
+            $retryable = $null -ne $code -and ($code -eq 429 -or $code -ge 500)
+            if ($retryable -and $attempt -lt $MaxRetries) {
+                Start-Sleep -Seconds ($BaseDelaySeconds * [math]::Pow(2, $attempt))
+                continue
+            }
+            $status = if ($null -ne $code) { " (HTTP $code)" } else { '' }
+            throw "Retail price request failed for ${Uri} (item '$ItemName')$status after $($attempt + 1) attempt(s): $($_.Exception.Message)"
+        }
+    }
 }
 
 function Get-RetailPriceItem {
@@ -14,7 +34,7 @@ function Get-RetailPriceItem {
     $pages = 0
     while ($uri) {
         if (++$pages -gt $MaxPages) { throw "Retail price paging exceeded $MaxPages pages for $($Item.Name)" }
-        $page = Invoke-RetailPricePage -Uri $uri
+        $page = Invoke-RetailPricePage -Uri $uri -ItemName $Item.Name
         $page.Items
         $uri = $page.NextPageLink
     }
