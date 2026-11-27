@@ -1,20 +1,40 @@
+function Get-HttpStatusCode {
+    param($ErrorRecord)
+    $ex = $ErrorRecord.Exception
+    $code = $null
+    if ($ex.PSObject.Properties['StatusCode']) { $code = $ex.StatusCode }
+    if ($null -eq $code -and $ex.PSObject.Properties['Response'] -and $null -ne $ex.Response -and $ex.Response.PSObject.Properties['StatusCode']) { $code = $ex.Response.StatusCode }
+    if ($null -eq $code) { return $null }
+    try { [int]$code } catch { $null }
+}
+
 function Invoke-RetailPricePage {
-    param([Parameter(Mandatory)][string]$Uri)
-    try { Invoke-RestMethod -Uri $Uri -Method Get -ErrorAction Stop }
-    catch { throw "Retail price request failed for ${Uri}: $($_.Exception.Message)" }
+    param([Parameter(Mandatory)][string]$Uri, [string]$ItemName = '?', [int]$MaxRetries = 5)
+    for ($attempt = 0; ; $attempt++) {
+        try { return Invoke-RestMethod -Uri $Uri -Method Get -ErrorAction Stop }
+        catch {
+            $status = Get-HttpStatusCode -ErrorRecord $_
+            $retryable = $null -ne $status -and ($status -eq 429 -or ($status -ge 500 -and $status -le 599))
+            if (-not $retryable -or $attempt -ge $MaxRetries) {
+                $shown = if ($null -ne $status) { "HTTP $status" } else { 'no HTTP status' }
+                throw "Retail price request failed for ${Uri} (item $ItemName, $shown): $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds ([math]::Pow(2, $attempt + 1))
+        }
+    }
 }
 
 function Get-RetailPriceItem {
     param([hashtable]$Item, [string]$Region, [int]$MaxPages = 50)
     $clauses = @("armRegionName eq '$Region'", "type eq 'Consumption'", "serviceName eq '$($Item.ServiceName)'")
-    if ($Item.ArmSkuName) { $clauses += "armSkuName eq '$($Item.ArmSkuName)'" }
-    if ($Item.MeterName) { $clauses += "meterName eq '$($Item.MeterName)'" }
-    if ($Item.ProductName) { $clauses += "productName eq '$($Item.ProductName)'" }
+    if ($Item['ArmSkuName']) { $clauses += "armSkuName eq '$($Item['ArmSkuName'])'" }
+    if ($Item['MeterName']) { $clauses += "meterName eq '$($Item['MeterName'])'" }
+    if ($Item['ProductName']) { $clauses += "productName eq '$($Item['ProductName'])'" }
     $uri = "https://prices.azure.com/api/retail/prices?currencyCode='EUR'&`$filter=" + [uri]::EscapeDataString($clauses -join ' and ')
     $pages = 0
     while ($uri) {
         if (++$pages -gt $MaxPages) { throw "Retail price paging exceeded $MaxPages pages for $($Item.Name)" }
-        $page = Invoke-RetailPricePage -Uri $uri
+        $page = Invoke-RetailPricePage -Uri $uri -ItemName $Item.Name
         $page.Items
         $uri = $page.NextPageLink
     }

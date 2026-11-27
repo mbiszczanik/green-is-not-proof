@@ -103,3 +103,73 @@ Describe 'Get-RetailPriceItem' {
         { Get-RetailPriceItem -Item $script:item -Region 'r' -MaxPages 3 } | Should -Throw '*exceeded 3 pages*'
     }
 }
+
+Describe 'Invoke-RetailPricePage retry' {
+    BeforeAll {
+        $script:item = @{ Name = 'vm'; ServiceName = 'x'; ArmSkuName = 'x'; MeterName = 'x'; Quantity = 1; Unit = 'Hour' }
+        function Get-HttpErrorFake($Code, $OnResponse = $false) {
+            $ex = [System.Exception]::new("status $Code")
+            if ($OnResponse) { $ex | Add-Member -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $Code }) }
+            else { $ex | Add-Member -NotePropertyName StatusCode -NotePropertyValue $Code }
+            $ex
+        }
+    }
+    BeforeEach {
+        $script:calls = 0
+        $script:waits = @()
+        Mock Start-Sleep { $script:waits += $Seconds }
+    }
+    It 'succeeds after a 429' {
+        Mock Invoke-RestMethod {
+            $script:calls++
+            if ($script:calls -le 2) { throw (Get-HttpErrorFake 429) }
+            [pscustomobject]@{ Items = @(Get-FakePrice 1); NextPageLink = $null }
+        }
+        Set-StrictMode -Version Latest
+        @(Get-RetailPriceItem -Item $script:item -Region 'r').Count | Should -Be 1
+        $script:calls | Should -Be 3
+        $script:waits.Count | Should -Be 2
+    }
+    It 'succeeds after a 5xx' {
+        Mock Invoke-RestMethod {
+            $script:calls++
+            if ($script:calls -eq 1) { throw (Get-HttpErrorFake 503) }
+            [pscustomobject]@{ Items = @(Get-FakePrice 1); NextPageLink = $null }
+        }
+        Set-StrictMode -Version Latest
+        @(Get-RetailPriceItem -Item $script:item -Region 'r').Count | Should -Be 1
+        $script:calls | Should -Be 2
+    }
+    It 'retries a 429 whose status is only on Response, under strict mode' {
+        Mock Invoke-RestMethod {
+            $script:calls++
+            if ($script:calls -eq 1) { throw (Get-HttpErrorFake 429 $true) }
+            [pscustomobject]@{ Items = @(Get-FakePrice 1); NextPageLink = $null }
+        }
+        Set-StrictMode -Version Latest
+        @(Get-RetailPriceItem -Item $script:item -Region 'r').Count | Should -Be 1
+        $script:calls | Should -Be 2
+    }
+    It 'fails after 5 retries naming item and status, with growing waits' {
+        Mock Invoke-RestMethod { $script:calls++; throw (Get-HttpErrorFake 429) }
+        Set-StrictMode -Version Latest
+        { Get-RetailPriceItem -Item $script:item -Region 'r' } | Should -Throw '*item vm*HTTP 429*'
+        $script:calls | Should -Be 6
+        $script:waits.Count | Should -Be 5
+        for ($i = 1; $i -lt 5; $i++) { $script:waits[$i] | Should -BeGreaterThan $script:waits[$i - 1] }
+    }
+    It 'does not retry another status' {
+        Mock Invoke-RestMethod { $script:calls++; throw (Get-HttpErrorFake 404) }
+        Set-StrictMode -Version Latest
+        { Get-RetailPriceItem -Item $script:item -Region 'r' } | Should -Throw '*item vm*HTTP 404*'
+        $script:calls | Should -Be 1
+        $script:waits.Count | Should -Be 0
+    }
+    It 'fails at once on an error without a status, keeping the message and item, under strict mode' {
+        Mock Invoke-RestMethod { $script:calls++; throw 'plain boom' }
+        Set-StrictMode -Version Latest
+        { Get-RetailPriceItem -Item $script:item -Region 'r' } | Should -Throw '*item vm*plain boom*'
+        $script:calls | Should -Be 1
+        $script:waits.Count | Should -Be 0
+    }
+}
