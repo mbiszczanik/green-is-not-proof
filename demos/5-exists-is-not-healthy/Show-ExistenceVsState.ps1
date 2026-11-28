@@ -4,12 +4,15 @@ Demo 5, on stage: reads the failing extension and prints an existence check (pas
 .DESCRIPTION
 Needs the extension from New-FailedExtension.ps1 (-RunId, else out/run.json). The existence check passes when the
 read returns the extension. The state check passes only for ProvisioningState Succeeded; a missing or blank state
-never passes. Exit code: 0 only when the state check passes; 1 when it fails (any state but Succeeded), when the
-extension is missing, or when the read could not run (the output then says "The check did not run").
-With -ExpectFailed (the on-stage run) the demonstration is the assertion: 0 only when the extension exists in state
-Failed, 1 for any other state or when the check did not run.
+never passes. The plain run is the on-stage run. Exit code: 0 only when the state check passes; 1 when it fails (any
+state but Succeeded), when the extension is missing, or when the read could not run (the output then says "The check
+did not run").
+With -ExpectFailed (rehearsals and recordings) the demonstration is the assertion: 0 only when the extension exists in
+state Failed, 1 for any other state or when the check did not run.
 .PARAMETER ExpectFailed
 Treat state Failed as the expected result of the demo and exit 0 for it.
+.EXAMPLE
+./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1
 .EXAMPLE
 ./demos/5-exists-is-not-healthy/Show-ExistenceVsState.ps1 -ExpectFailed
 #>
