@@ -156,6 +156,21 @@ Describe 'Invoke-DiagnosticSettingLeftover' {
         Should -Invoke New-AzStorageAccount -Times 1 -Exactly
     }
 
+    It 'recreate does not retry an unrelated error that contains "in use"' {
+        Mock New-AzStorageAccount { throw 'The subscription is in use by another operation' }
+        $r = Step Recreate
+        $r.Code | Should -Be 1
+        $r.Text | Should -Not -Match 'still held'
+        Should -Invoke New-AzStorageAccount -Times 1 -Exactly
+    }
+
+    It 'recreate retries a held-name error worded "already taken"' {
+        $script:n = 0
+        Mock New-AzStorageAccount { $script:n++; if ($script:n -le 1) { throw 'The storage account named x is already taken.' } }
+        (Step Recreate).Code | Should -Be 0
+        $script:n | Should -Be 2
+    }
+
     It 'recreate fails when run.json has no Location' {
         @{ RunId = '202611181805'; SubscriptionId = $script:Sub } | ConvertTo-Json | Set-Content (Join-Path $script:out 'run.json')
         $r = Step Recreate

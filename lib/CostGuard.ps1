@@ -50,9 +50,11 @@ function Resolve-RetailPrice {
         } | Sort-Object -Property meterName)
     if ($found.Count -eq 0) { throw "No retail price for $($Item.Name)" }
     $price = $found[0].retailPrice
-    if ($null -eq $price -or [decimal]$price -le 0) { throw "Invalid retail price for $($Item.Name)" }
+    if ($null -eq $price) { throw "Invalid retail price for $($Item.Name)" }
+    try { $value = [decimal]$price } catch { throw "Retail price for $($Item.Name) is not a number: '$price'" }
+    if ($value -le 0) { throw "Invalid retail price for $($Item.Name)" }
     if ($found.Count -gt 1) { Write-Warning "Several retail prices matched $($Item.Name); using $($found[0].meterName) $price" }
-    [pscustomobject]@{ Price = [decimal]$price; Matches = $found.Count }
+    [pscustomobject]@{ Price = $value; Matches = $found.Count }
 }
 
 function Get-RetailPrice {

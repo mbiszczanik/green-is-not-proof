@@ -41,6 +41,10 @@ Describe 'Get-DemoRunCostEstimate' {
         { Get-RetailPrice -Item $item -Region 'r' -Fetch { Get-FakePrice 0 } } | Should -Throw 'Invalid retail price for vm'
         { Get-RetailPrice -Item $item -Region 'r' -Fetch { Get-FakePrice $null } } | Should -Throw 'Invalid retail price for vm'
     }
+    It 'non-numeric price stops the run with the item name' {
+        $item = @{ Name = 'vm'; ServiceName = 'x'; ArmSkuName = 'x'; MeterName = 'x'; Quantity = 1; Unit = 'Hour' }
+        { Get-RetailPrice -Item $item -Region 'r' -Fetch { Get-FakePrice 'abc' } } | Should -Throw '*vm*not a number*'
+    }
     It 'tiered meter uses the tier at or above TierMinimumUnits' {
         $item = @{ Name = 'law'; ServiceName = 'x'; MeterName = 'x'; TierMinimumUnits = 5; Quantity = 1; Unit = 'Run' }
         Get-RetailPrice -Item $item -Region 'r' -Fetch { Get-FakePrice 0 'Ingestion' 'p' 0; Get-FakePrice 2.63 'Ingestion' 'p' 5 } | Should -Be 2.63
