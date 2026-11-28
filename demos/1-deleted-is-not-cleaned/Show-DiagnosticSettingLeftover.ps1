@@ -81,7 +81,7 @@ function Invoke-DiagnosticSettingLeftover {
                         break
                     }
                     catch {
-                        if ($_.Exception.Message -notmatch 'StorageAccountAlreadyTaken|AlreadyExists|already taken|in use') { throw }
+                        if ($_.Exception.Message -notmatch 'StorageAccountAlreadyTaken|AlreadyExists|already taken') { throw }
                         if ($i -ge $maxRetries) { throw "name $name still held by Azure after $($maxRetries * $RetryDelaySeconds) s, try again shortly" }
                         if (-not $told) { Write-Host 'Name still held by Azure, retrying...'; $told = $true }
                         Start-Sleep -Seconds $RetryDelaySeconds
